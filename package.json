@@ -5,7 +5,7 @@
   "description": "CrowdSenseAI - AI-powered location tracking with signal prediction",
   "main": "./out/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "electron-vite dev -- --no-sandbox --disable-setuid-sandbox",
     "dev:native": "electron . --no-sandbox --disable-setuid-sandbox --no-network-location-provider",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
