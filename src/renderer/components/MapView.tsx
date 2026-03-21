@@ -1,28 +1,82 @@
 import { useState, useMemo } from 'react'
 import DeckGL from '@deck.gl/react'
-import { ScatterplotLayer, PathLayer } from '@deck.gl/layers'
+import { ScatterplotLayer, PathLayer, PolygonLayer } from '@deck.gl/layers'
 import { Map } from 'react-map-gl/maplibre'
-import { LocationData } from '../types'
+import { LocationData, QuadrantDensity, DensityLevel } from '../types'
+import { createHeatmapLayer } from './HeatmapOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
+
+const DENSITY_COLORS: Record<DensityLevel, [number, number, number]> = {
+  0: [50, 50, 50],
+  1: [56, 189, 248],
+  2: [251, 191, 36],
+  3: [239, 68, 68]
+}
+
+const DENSITY_ALPHA: Record<DensityLevel, number> = {
+  0: 30,
+  1: 120,
+  2: 160,
+  3: 200
+}
 
 interface MapViewProps {
   currentLocation: LocationData | null
   locationHistory: LocationData[]
+  heatmapQuadrants?: QuadrantDensity[]
+  showHeatmap?: boolean
+  heatmapOpacity?: number
 }
 
 const INITIAL_VIEW_STATE = {
-  longitude: -79.3832,
-  latitude: 43.6532,
-  zoom: 14,
+  longitude: -92.5814,
+  latitude: 40.1845,
+  zoom: 15,
   pitch: 45,
   bearing: 0
 }
 
-export default function MapView({ currentLocation, locationHistory }: MapViewProps) {
+export default function MapView({ 
+  currentLocation, 
+  locationHistory,
+  heatmapQuadrants = [],
+  showHeatmap = false,
+  heatmapOpacity = 0.6
+}: MapViewProps) {
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
 
   const layers = useMemo(() => {
     const layerList = []
+
+    if (showHeatmap && heatmapQuadrants.length > 0) {
+      layerList.push(
+        new PolygonLayer({
+          id: 'heatmap-layer',
+          data: heatmapQuadrants,
+          getPolygon: (d: QuadrantDensity) => {
+            const b = d.bounds
+            return [
+              [b.minLon, b.minLat],
+              [b.maxLon, b.minLat],
+              [b.maxLon, b.maxLat],
+              [b.minLon, b.maxLat]
+            ]
+          },
+          getFillColor: (d: QuadrantDensity) => {
+            const baseColor = DENSITY_COLORS[d.density]
+            const alpha = Math.round(DENSITY_ALPHA[d.density] * heatmapOpacity)
+            return [...baseColor, alpha] as [number, number, number, number]
+          },
+          getLineColor: [100, 100, 100, 50],
+          getLineWidth: 1,
+          lineWidthMinPixels: 1,
+          pickable: true,
+          stroked: true,
+          filled: true,
+          extruded: false
+        })
+      )
+    }
 
     if (locationHistory.length > 1) {
       layerList.push(
@@ -74,7 +128,7 @@ export default function MapView({ currentLocation, locationHistory }: MapViewPro
     }
 
     return layerList
-  }, [currentLocation, locationHistory])
+  }, [currentLocation, locationHistory, heatmapQuadrants, showHeatmap, heatmapOpacity])
 
   useMemo(() => {
     if (currentLocation && locationHistory.length === 1) {
