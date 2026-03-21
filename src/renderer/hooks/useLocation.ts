@@ -10,7 +10,7 @@ interface UseLocationReturn {
   refreshLocation: () => Promise<void>
 }
 
-const DEFAULT_POLL_INTERVAL = 5000
+const DEFAULT_POLL_INTERVAL = 300000
 
 export function useLocation(pollInterval = DEFAULT_POLL_INTERVAL): UseLocationReturn {
   const [location, setLocation] = useState<LocationData | null>(null)
