@@ -100,6 +100,31 @@ Modify the poll interval in `useLocation.ts`:
 const DEFAULT_POLL_INTERVAL = 5000 // milliseconds
 ```
 
+## Platform-Specific Setup
+
+### macOS Location Services
+
+The app uses macOS Location Services via the browser Geolocation API. On macOS, apps need special entitlements to access location.
+
+**Entitlements file:** `resources/crowdsenseai.entitlements`
+
+The entitlements file is configured in `package.json` under `build.mac`:
+```json
+"mac": {
+  "entitlements": "resources/crowdsenseai.entitlements",
+  "entitlementsInherit": "resources/crowdsenseai.entitlements"
+}
+```
+
+**First run:** When you launch the packaged app, macOS will prompt for location permission. Grant it in:
+- System Settings → Privacy & Security → Location Services → Enable for CrowdSenseAI
+
+**Note:** Location services may not work properly in development mode (`npm run dev`). For full functionality, use the packaged app:
+```bash
+npm run build && npm run dist
+./dist/mac/CrowdSenseAI.app/Contents/MacOS/CrowdSenseAI
+```
+
 ## Database Schema
 
 ### Document-Based Sessions

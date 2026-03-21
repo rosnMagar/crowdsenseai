@@ -59,7 +59,9 @@
       "resources/**/*"
     ],
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "entitlements": "resources/crowdsenseai.entitlements",
+      "entitlementsInherit": "resources/crowdsenseai.entitlements"
     },
     "win": {
       "target": "nsis"

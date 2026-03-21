@@ -31,7 +31,13 @@ const electronAPI: ElectronAPI = {
           })
         },
         (error) => {
-          reject(new Error(error.message))
+          const codeMessages: Record<number, string> = {
+            1: 'Location permission denied',
+            2: 'Location unavailable',
+            3: 'Location request timed out'
+          }
+          const codeMsg = codeMessages[error.code] || 'Unknown location error'
+          reject(new Error(`Geolocation error (code ${error.code}): ${codeMsg} - ${error.message}`))
         },
         {
           enableHighAccuracy: true,
