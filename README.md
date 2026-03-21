@@ -8,7 +8,7 @@ An Electron + React application for AI-powered location tracking with deck.gl vi
 - **React 19** - UI framework
 - **deck.gl** - High-performance WebGL visualization
 - **MapLibre GL** - Open-source map rendering (no API key needed)
-- **Tailwind CSS** - Utility-first styling
+- **Tailwind CSS** - Utility-first styling with custom color palette
 - **Supabase** - PostgreSQL with document-based JSONB storage
 - **Gaussian Process Regression** - AI/ML service (structure ready for integration)
 
@@ -49,9 +49,17 @@ src/
 │   └── index.ts
 └── renderer/       # React frontend
     ├── components/ # UI components
-    │   ├── MapView.tsx
-    │   ├── LocationPanel.tsx
-    │   └── StatusBar.tsx
+    │   ├── Header.tsx      # Top navigation bar
+    │   ├── Sidebar.tsx     # Desktop navigation
+    │   ├── BottomNav.tsx    # Mobile bottom navigation
+    │   └── MapView.tsx      # deck.gl map visualization
+    ├── contexts/   # React contexts
+    │   └── ThemeContext.tsx # Theme provider (light/dark mode)
+    ├── pages/      # Page components
+    │   ├── MapScreen.tsx      # Main map view with info cards
+    │   ├── InsightsScreen.tsx  # Analytics dashboard
+    │   ├── HistoryScreen.tsx  # Signal history table
+    │   └── SettingsScreen.tsx  # User preferences
     ├── hooks/      # Custom React hooks
     │   └── useLocation.ts
     ├── services/   # Business logic
@@ -73,13 +81,42 @@ src/
 - Polling-based tracking with configurable interval
 - Session-based data organization
 - Document-based storage with Supabase
+- **Light/Dark theme** with app-wide toggle
+- **Responsive design** - Desktop sidebar, mobile bottom navigation
+- **4-page navigation**: Map, Signal Insights, History, Settings
+- **Custom color palette** - Warm earth tones for light mode, dark teal for dark mode
 
 ### Planned Features
 
-- **Google Stitch** - UI design and export (React + Tailwind supported)
 - **WiFi Access Point Mapping** - Link to AP UIDs for location estimation
 - **Gaussian Process Regression (Kriging)** - Predictive signal strength mapping
 - **Mapbox Integration** - Alternative map provider option
+
+## Theme System
+
+The app supports light and dark themes with a warm, nature-inspired color palette.
+
+### Color Palette
+
+**Light Mode:**
+- Cornsilk (`#fefae0`) - Main background
+- Beige (`#e9edc9`) - Container backgrounds
+- Papaya Whip (`#faedcd`) - Card backgrounds
+- Tea Green (`#ccd5ae`) - Borders, secondary elements
+- Bronze (`#d4a373`) - Primary accent
+
+**Dark Mode:**
+- Ink Black (`#01161e`) - Main background
+- Dark Teal (`#124559`) - Container backgrounds
+- Air Force Blue (`#598392`) - Borders, secondary elements
+- Ash Grey (`#aec3b0`) - Primary accent
+- Light Beige (`#eff6e0`) - Text
+
+### Typography
+
+- **Manrope** - Headlines (bold, modern sans-serif)
+- **Inter** - Body text and labels
+- **Material Symbols** - Icon library
 
 ## Configuration
 

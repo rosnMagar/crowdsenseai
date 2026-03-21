@@ -1,22 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import MapView from './components/MapView'
-import LocationPanel from './components/LocationPanel'
-import StatusBar from './components/StatusBar'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import Sidebar from './components/Sidebar'
+import BottomNav from './components/BottomNav'
+import MapScreen from './pages/MapScreen'
+import InsightsScreen from './pages/InsightsScreen'
+import HistoryScreen from './pages/HistoryScreen'
+import SettingsScreen from './pages/SettingsScreen'
 import { useLocation } from './hooks/useLocation'
 import { LocationData, Session, SessionMetadata } from './types'
 import { createSession, addLocationToSession } from './services/supabase'
 
-declare global {
-  interface Window {
-    electronAPI: {
-      getLocation: () => Promise<LocationData>
-      log: (level: string, message: string) => void
-    }
-  }
-}
+type Page = 'map' | 'insights' | 'history' | 'settings'
 
 function App() {
-  const { location, error, isTracking, startTracking, stopTracking, refreshLocation } = useLocation()
+  const { location, isTracking, startTracking, stopTracking } = useLocation()
+  const [currentPage, setCurrentPage] = useState<Page>('map')
   const [locationHistory, setLocationHistory] = useState<LocationData[]>([])
   const [currentSession, setCurrentSession] = useState<Session | null>(null)
   const sessionIdRef = useRef<string | null>(null)
@@ -40,54 +37,56 @@ function App() {
     return session
   }, [])
 
-  const handleStartTracking = useCallback(async () => {
-    if (!currentSession) {
-      const metadata: SessionMetadata = {
-        appVersion: '0.1.0',
-        userAgent: navigator.userAgent,
-        device: navigator.platform
-      }
-      await startNewSession(metadata)
-    }
-    startTracking()
-  }, [currentSession, startNewSession, startTracking])
-
-  const handleStopTracking = useCallback(() => {
-    stopTracking()
-  }, [stopTracking])
-
-  const handleToggleTracking = useCallback(() => {
+  const handleToggleTracking = useCallback(async () => {
     if (isTracking) {
-      handleStopTracking()
+      stopTracking()
     } else {
-      handleStartTracking()
+      if (!currentSession) {
+        const metadata: SessionMetadata = {
+          appVersion: '0.1.0',
+          userAgent: navigator.userAgent,
+          device: navigator.platform
+        }
+        await startNewSession(metadata)
+      }
+      startTracking()
     }
-  }, [isTracking, handleStartTracking, handleStopTracking])
+  }, [isTracking, currentSession, startNewSession, startTracking, stopTracking])
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'map':
+        return (
+          <MapScreen
+            location={location}
+            locationHistory={locationHistory}
+            isTracking={isTracking}
+            onToggleTracking={handleToggleTracking}
+          />
+        )
+      case 'insights':
+        return <InsightsScreen />
+      case 'history':
+        return <HistoryScreen history={locationHistory} />
+      case 'settings':
+        return <SettingsScreen />
+      default:
+        return <MapScreen
+          location={location}
+          locationHistory={locationHistory}
+          isTracking={isTracking}
+          onToggleTracking={handleToggleTracking}
+        />
+    }
+  }
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
-      <StatusBar 
-        isTracking={isTracking} 
-        onToggleTracking={handleToggleTracking}
-        locationCount={locationHistory.length}
-        sessionId={currentSession?.id || null}
-      />
-      
-      <div className="flex-1 flex">
-        <div className="flex-1 relative">
-          <MapView 
-            currentLocation={location}
-            locationHistory={locationHistory}
-          />
-        </div>
-        
-        <LocationPanel
-          location={location}
-          history={locationHistory}
-          error={error}
-          onRefresh={refreshLocation}
-        />
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar currentPage={currentPage} onNavigate={(page) => setCurrentPage(page as Page)} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {renderPage()}
       </div>
+      <BottomNav currentPage={currentPage} onNavigate={(page) => setCurrentPage(page as Page)} />
     </div>
   )
 }
