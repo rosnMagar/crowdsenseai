@@ -6,7 +6,7 @@
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
-    "dev:native": "electron . --no-sandbox --disable-setuid-sandbox",
+    "dev:native": "electron . --no-sandbox --disable-setuid-sandbox --no-network-location-provider",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "package": "electron-vite build && electron-builder --dir",
