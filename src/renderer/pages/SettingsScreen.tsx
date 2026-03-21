@@ -2,15 +2,19 @@ import { useState } from 'react'
 import Header from '../components/Header'
 import { useTheme } from '../contexts/ThemeContext'
 
-export default function SettingsScreen() {
+interface SettingsScreenProps {
+  onNavigate?: (page: string) => void
+}
+
+export default function SettingsScreen({ onNavigate }: SettingsScreenProps) {
   const { theme, toggleTheme } = useTheme()
   const [locationSharing, setLocationSharing] = useState(true)
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen">
-      <Header title="System Configuration" />
+    <div className="flex-1 flex flex-col overflow-y-auto">
+      <Header title="System Configuration" onNavigate={onNavigate} />
       
-      <main className="flex-1 p-6 md:p-12 max-w-6xl mx-auto w-full pb-24 md:pb-12">
+      <main className="flex-1 p-6 md:p-12 max-w-6xl mx-auto w-full pb-24 md:pb-12 overflow-y-auto">
         <section className="mb-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className={`md:col-span-2 p-8 flex flex-col md:flex-row gap-8 items-center md:items-start border-l-4 ${
@@ -177,9 +181,7 @@ export default function SettingsScreen() {
                     <div className={`absolute top-[2px] transition-all ${
                       locationSharing
                         ? 'left-[22px] bg-cornsilk'
-                        : theme === 'dark'
-                          ? 'left-[2px] bg-light-beige'
-                          : 'left-[2px] bg-bronze'
+                        : 'left-[2px] bg-bronze'
                     } w-5 h-5 rounded-full`}></div>
                   </div>
                 </label>

@@ -53,12 +53,7 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         })}
       </nav>
 
-      <div className="mt-auto p-2">
-        <button className="w-full border-[1.5px] border-bronze text-bronze bg-bronze/10 py-2 px-4 rounded font-label text-xs font-semibold uppercase tracking-wider hover:bg-bronze/20 transition-colors flex justify-center items-center gap-2">
-          <span className="material-symbols-outlined text-sm">radar</span>
-          Scan Network
-        </button>
-      </div>
+
     </aside>
   )
 }

@@ -4,9 +4,10 @@ import { LocationData } from '../types'
 
 interface HistoryScreenProps {
   history: LocationData[]
+  onNavigate?: (page: string) => void
 }
 
-export default function HistoryScreen({ history }: HistoryScreenProps) {
+export default function HistoryScreen({ history, onNavigate }: HistoryScreenProps) {
   const { theme } = useTheme()
 
   const mockData = [
@@ -37,10 +38,10 @@ export default function HistoryScreen({ history }: HistoryScreenProps) {
   ]
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen">
-      <Header title="Signal History" />
+    <div className="flex-1 flex flex-col overflow-y-auto">
+      <Header title="Signal History" onNavigate={onNavigate} />
       
-      <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full pb-24 md:pb-8">
+      <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full pb-24 md:pb-8 overflow-y-auto">
         <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h2 className="text-3xl font-headline font-medium tracking-tight mb-1">
@@ -74,8 +75,6 @@ export default function HistoryScreen({ history }: HistoryScreenProps) {
                   <tr className="text-left font-label text-[10px] uppercase tracking-widest text-air-force-blue dark:text-tea-green">
                     <th className="px-6 py-2 font-semibold">Location</th>
                     <th className="px-4 py-2 font-semibold">Strength</th>
-                    <th className="px-4 py-2 font-semibold">Access Point</th>
-                    <th className="px-4 py-2 font-semibold text-right">Contribution</th>
                   </tr>
                 </thead>
                 <tbody className="font-body text-sm">
@@ -106,21 +105,6 @@ export default function HistoryScreen({ history }: HistoryScreenProps) {
                           <div className="w-1.5 h-1.5 rounded-full bg-bronze"></div>
                           <span className="font-medium text-bronze">{item.strength} dBm</span>
                         </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col">
-                          <span className="truncate max-w-[120px]">{item.accessPoint}</span>
-                          <span className="text-[10px] font-mono opacity-70">{item.mac}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 rounded-r-lg text-right">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tighter ${
-                          item.status === 'Verified'
-                            ? 'bg-beige text-ink-black dark:bg-dark-teal dark:text-light-beige'
-                            : 'bg-tea-green/50 text-ink-black dark:bg-air-force-blue/50 dark:text-light-beige'
-                        }`}>
-                          {item.status}
-                        </span>
                       </td>
                     </tr>
                   ))}

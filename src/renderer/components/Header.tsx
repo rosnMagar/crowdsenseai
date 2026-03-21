@@ -2,9 +2,10 @@ import { useTheme } from '../contexts/ThemeContext'
 
 interface HeaderProps {
   title: string
+  onNavigate?: (page: string) => void
 }
 
-export default function Header({ title }: HeaderProps) {
+export default function Header({ title, onNavigate }: HeaderProps) {
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -26,21 +27,13 @@ export default function Header({ title }: HeaderProps) {
             </span>
           </button>
           
-          <button className="p-2 rounded-full hover:bg-beige dark:hover:bg-dark-teal transition-colors">
-            <span className="material-symbols-outlined">wifi_tethering</span>
+          <button 
+            onClick={() => onNavigate?.('settings')}
+            className="p-2 rounded-full hover:bg-beige dark:hover:bg-dark-teal transition-colors"
+            title="Go to Settings"
+          >
+            <span className="material-symbols-outlined">account_circle</span>
           </button>
-          
-          <button className="p-2 rounded-full hover:bg-beige dark:hover:bg-dark-teal transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          
-          <div className="w-8 h-8 bg-papaya-whip dark:bg-dark-teal rounded overflow-hidden border border-tea-green/20">
-            <img
-              alt="User profile"
-              className="w-full h-full object-cover"
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
-            />
-          </div>
         </div>
       </div>
     </header>

@@ -53,6 +53,10 @@ function App() {
     }
   }, [isTracking, currentSession, startNewSession, startTracking, stopTracking])
 
+  const handleNavigate = useCallback((page: Page) => {
+    setCurrentPage(page)
+  }, [])
+
   const renderPage = () => {
     switch (currentPage) {
       case 'map':
@@ -62,14 +66,15 @@ function App() {
             locationHistory={locationHistory}
             isTracking={isTracking}
             onToggleTracking={handleToggleTracking}
+            onNavigate={handleNavigate}
           />
         )
       case 'insights':
-        return <InsightsScreen />
+        return <InsightsScreen onNavigate={handleNavigate} />
       case 'history':
-        return <HistoryScreen history={locationHistory} />
+        return <HistoryScreen history={locationHistory} onNavigate={handleNavigate} />
       case 'settings':
-        return <SettingsScreen />
+        return <SettingsScreen onNavigate={handleNavigate} />
       default:
         return <MapScreen
           location={location}
