@@ -45,7 +45,9 @@ export async function createSession(metadata?: SessionMetadata): Promise<Session
     return null
   }
 
-  const newSession: Partial<DbSession> = {
+  const newSession: DbSession = {
+    id: crypto.randomUUID(),
+    created_at: new Date().toISOString(),
     metadata: metadata || {},
     locations: [],
     access_points: [],
@@ -54,7 +56,7 @@ export async function createSession(metadata?: SessionMetadata): Promise<Session
 
   const { data, error } = await supabase
     .from('sessions')
-    .insert([toSnakeCase(newSession as DbSession)])
+    .insert([toSnakeCase(newSession)])
     .select()
     .single()
 
