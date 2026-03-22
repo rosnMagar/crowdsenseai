@@ -6,12 +6,15 @@ const resetConsent = process.argv.includes('--reset-consent')
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({
+      exclude: []
+    })],
     build: {
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/main/index.ts')
-        }
+        },
+        external: ['node-wifi']
       }
     }
   },
