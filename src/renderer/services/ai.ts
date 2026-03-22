@@ -103,36 +103,6 @@ export function krigingInterpolation(
   gridSize: number,
   bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number }
 ): PredictionPoint[] {
-  const predictions: PredictionPoint[] = []
-  const latStep = (bounds.maxLat - bounds.minLat) / gridSize
-  const lonStep = (bounds.maxLon - bounds.minLon) / gridSize
-
-  const gpr = new GaussianProcessRegressor()
-  
-  const X = points.map(p => [p.location.latitude, p.location.longitude])
-  const y = points.map(p => p.prediction?.signalStrength || -100)
-  gpr.addTrainingData(X, y)
-
-  for (let i = 0; i <= gridSize; i++) {
-    for (let j = 0; j <= gridSize; j++) {
-      const lat = bounds.minLat + i * latStep
-      const lon = bounds.minLon + j * lonStep
-      
-      predictions.push({
-        location: {
-          latitude: lat,
-          longitude: lon,
-          accuracy: 0,
-          timestamp: Date.now()
-        },
-        prediction: predictSignalStrength(
-          { latitude: lat, longitude: lon, accuracy: 0, timestamp: Date.now() },
-          points,
-          gpr
-        )
-      })
-    }
-  }
-
-  return predictions
+  console.warn('krigingInterpolation is deprecated. Use WifiKriging from wifi-kriging.ts instead.')
+  return []
 }

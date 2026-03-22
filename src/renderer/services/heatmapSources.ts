@@ -1,5 +1,5 @@
 import { HeatmapPoint, HeatmapSource, WIFI_COLOR_SCHEME } from '../types/heatmap'
-import { GaussianProcessRegressor } from './ai'
+import { WifiKriging, SignalReading } from './wifi-kriging'
 import { WifiObservation, getWifiObservations } from './wifiTracker'
 
 export interface WifiScanResult {
@@ -33,24 +33,50 @@ const DEFAULT_BOUNDS: MapBounds = {
   maxLon: -92.5764
 }
 
+const METERS_PER_DEGREE_LAT = 111320
+
+function latLonToMeters(lat: number, lon: number, refLat: number, refLon: number): { x: number; y: number } {
+  const latDiff = lat - refLat
+  const lonDiff = lon - refLon
+  const y = latDiff * METERS_PER_DEGREE_LAT
+  const x = lonDiff * METERS_PER_DEGREE_LAT * Math.cos(refLat * Math.PI / 180)
+  return { x, y }
+}
+
+function metersToLatLon(x: number, y: number, refLat: number, refLon: number): { lat: number; lon: number } {
+  const lat = refLat + y / METERS_PER_DEGREE_LAT
+  const lon = refLon + x / (METERS_PER_DEGREE_LAT * Math.cos(refLat * Math.PI / 180))
+  return { lat, lon }
+}
+
+function observationsToReadings(observations: WifiObservation[], refLat: number, refLon: number): SignalReading[] {
+  return observations.map(obs => {
+    const { x, y } = latLonToMeters(obs.latitude, obs.longitude, refLat, refLon)
+    const signalNormalized = Math.min(100, Math.max(0, obs.signalStrength + 100))
+    return { x, y, signal: signalNormalized }
+  })
+}
+
 export function getWifiHeatmapPoints(
   observations: WifiObservation[],
   bounds: MapBounds = DEFAULT_BOUNDS,
-  gridSize: number = 15
+  gridSize: number = 100
 ): HeatmapPoint[] {
   if (observations.length === 0) {
     return []
   }
 
-  const gpr = new GaussianProcessRegressor({
-    lengthScale: 0.002,
-    variance: 1.0,
-    noise: 0.5
+  const centerLat = (bounds.minLat + bounds.maxLat) / 2
+  const centerLon = (bounds.minLon + bounds.maxLon) / 2
+
+  const readings = observationsToReadings(observations, centerLat, centerLon)
+
+  const kriging = new WifiKriging({
+    lengthScale: 80,
+    noiseVariance: 0.01
   })
 
-  observations.forEach(obs => {
-    gpr.addTrainingPoint([obs.latitude, obs.longitude], obs.signalStrength)
-  })
+  kriging.setReadings(readings)
 
   const predictions: HeatmapPoint[] = []
   const latStep = (bounds.maxLat - bounds.minLat) / gridSize
@@ -60,10 +86,11 @@ export function getWifiHeatmapPoints(
     for (let j = 0; j < gridSize; j++) {
       const lat = bounds.minLat + i * latStep
       const lon = bounds.minLon + j * lonStep
-      const result = gpr.predict([[lat, lon]])
-      const prediction = result.predictions[0]
 
-      const normalized = Math.min(1, Math.max(0, (prediction + 100) / 70))
+      const { x, y } = latLonToMeters(lat, lon, centerLat, centerLon)
+      const prediction = kriging.predict(x, y)
+
+      const normalized = Math.min(1, Math.max(0, prediction / 100))
 
       predictions.push({
         quadrantId: `wifi_${i}_${j}`,

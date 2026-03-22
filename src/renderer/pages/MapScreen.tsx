@@ -71,7 +71,7 @@ export default function MapScreen({
   realTimeUsers,
 }: MapScreenProps) {
   const { theme } = useTheme()
-  const { setCurrentSource, currentSourceId, addWifiObservation: addWifiObs, wifiObservations } = useHeatmap()
+  const { setCurrentSource, currentSourceId, addWifiObservation: addWifiObs, wifiObservations, wifiHeatmapData } = useHeatmap()
   const { currentSignal } = useWifiSignal()
   const [currentMode, setCurrentMode] = useState<MapMode>("activity")
   const [isScanning, setIsScanning] = useState(false)
@@ -209,6 +209,7 @@ export default function MapScreen({
             heatmapOpacity={0.6}
             heatmapMode={currentMode === 'wifi' ? 'heatmap' : 'polygon'}
             wifiObservations={wifiObservations}
+            wifiHeatmapData={wifiHeatmapData}
           />
         </div>
 
@@ -290,29 +291,29 @@ export default function MapScreen({
 
               <div className="space-y-1 mb-2">
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FFF8E8' }} />
-                  <span className="text-bronze dark:text-bronze">Very Strong</span>
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FF6B35' }} />
+                  <span className="text-bronze dark:text-bronze">Strong</span>
                   <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-40 dBm</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FFF0C8' }} />
-                  <span className="text-bronze dark:text-bronze">Strong</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-50 to -40 dBm</span>
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#CC7722' }} />
+                  <span className="text-bronze dark:text-bronze">Good</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-50 dBm</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-3 h-3 rounded" style={{ backgroundColor: '#D4A373' }} />
                   <span className="text-bronze dark:text-bronze">Medium</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-60 to -50 dBm</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-60 dBm</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#8C5E3C' }} />
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FFE4C4' }} />
                   <span className="text-bronze dark:text-bronze">Weak</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-70 to -60 dBm</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-70 dBm</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4A2E1A' }} />
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FFFEF0' }} />
                   <span className="text-bronze dark:text-bronze">Very Weak</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-70 dBm</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-80 dBm</span>
                 </div>
               </div>
 
