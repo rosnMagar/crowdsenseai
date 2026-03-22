@@ -1,12 +1,14 @@
-import { useCallback, useMemo, useState } from "react";
-import MapView from "../components/MapView";
-import Header from "../components/Header";
-import TimeSlider from "../components/TimeSlider";
-import { useTheme } from "../contexts/ThemeContext";
-import { useHeatmap } from "../contexts/HeatmapContext";
-import { useWifiSignal } from "../contexts/WifiContext";
-import { LocationData, QuadrantDensity, DensityLevel } from "../types";
-import { quadrantToLatLon } from "../services/grid";
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
+import MapView from '../components/MapView'
+import Header from '../components/Header'
+import TimeSlider from '../components/TimeSlider'
+import { useTheme } from '../contexts/ThemeContext'
+import { useHeatmap } from '../contexts/HeatmapContext'
+import { useWifiSignal } from '../contexts/WifiContext'
+import { LocationData, QuadrantDensity, DensityLevel } from '../types'
+import { quadrantToLatLon } from '../services/grid'
+import { addWifiObservation, generateObservationId, WifiObservation } from '../services/wifiTracker'
+import { generateDummyWifiObservations } from '../services/dummyData'
 
 type MapMode = "activity" | "wifi";
 
@@ -68,22 +70,77 @@ export default function MapScreen({
   lastUpdated,
   realTimeUsers,
 }: MapScreenProps) {
-  const { theme } = useTheme();
-  const { setCurrentSource, currentSourceId } = useHeatmap();
-  const { currentSignal } = useWifiSignal();
-  const [currentMode, setCurrentMode] = useState<MapMode>("activity");
+  const { theme } = useTheme()
+  const { setCurrentSource, currentSourceId, addWifiObservation: addWifiObs, wifiObservations } = useHeatmap()
+  const { currentSignal } = useWifiSignal()
+  const [currentMode, setCurrentMode] = useState<MapMode>("activity")
+  const [isScanning, setIsScanning] = useState(false)
+  const lastScanRef = useRef<number>(0)
 
-  const handleModeChange = useCallback(
-    (mode: MapMode) => {
-      setCurrentMode(mode);
-      if (mode === "activity") {
-        setCurrentSource("density");
-      } else if (mode === "wifi") {
-        setCurrentSource("wifi-intensity");
+  const handleModeChange = useCallback((mode: MapMode) => {
+    setCurrentMode(mode)
+    if (mode === 'activity') {
+      setCurrentSource('density')
+    } else if (mode === 'wifi') {
+      setCurrentSource('wifi-intensity')
+      if (wifiObservations.length === 0) {
+        const dummyData = generateDummyWifiObservations(25)
+        dummyData.forEach(obs => addWifiObs(obs))
       }
-    },
-    [setCurrentSource],
-  );
+    }
+  }, [setCurrentSource, addWifiObs, wifiObservations.length])
+
+  const scanWifi = useCallback(async (loc: LocationData) => {
+    if (!window.electronAPI?.wifi) return
+    if (isScanning) return
+    
+    const now = Date.now()
+    if (now - lastScanRef.current < 3000) return
+    
+    setIsScanning(true)
+    lastScanRef.current = now
+    
+    try {
+      const results = await window.electronAPI.wifi.scan()
+      
+      if (results && results.length > 0) {
+        results.forEach(network => {
+          if (typeof network.signal === 'number' && !isNaN(network.signal)) {
+            const obs: WifiObservation = {
+              id: generateObservationId(),
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              signalStrength: network.signal,
+              ssid: network.ssid || 'Unknown',
+              bssid: network.bssid || '',
+              frequency: network.frequency || 2400,
+              timestamp: now
+            }
+            addWifiObs(obs)
+          }
+        })
+      }
+    } catch (err) {
+      console.error('WiFi scan failed:', err)
+    } finally {
+      setIsScanning(false)
+    }
+  }, [isScanning, addWifiObs])
+
+  useEffect(() => {
+    if (currentMode === 'wifi' && location) {
+      scanWifi(location)
+    }
+  }, [location, currentMode, scanWifi])
+
+  useEffect(() => {
+    if (currentMode === 'wifi' && location && !isScanning) {
+      const interval = setInterval(() => {
+        scanWifi(location)
+      }, 300000)
+      return () => clearInterval(interval)
+    }
+  }, [currentMode, location, isScanning, scanWifi])
 
   const handleStartTracking = useCallback(() => {
     onToggleTracking();
@@ -150,6 +207,8 @@ export default function MapScreen({
             heatmapQuadrants={displayQuadrants}
             showHeatmap={true}
             heatmapOpacity={0.6}
+            heatmapMode={currentMode === 'wifi' ? 'heatmap' : 'polygon'}
+            wifiObservations={wifiObservations}
           />
         </div>
 
@@ -222,35 +281,43 @@ export default function MapScreen({
                 <span className="text-xs font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
                   WiFi Signal Map
                 </span>
-                <span className="text-xs text-teal-400">Live</span>
+                {isScanning ? (
+                  <span className="text-xs text-amber-400 animate-pulse">Scanning...</span>
+                ) : (
+                  <span className="text-xs text-teal-400">Live</span>
+                )}
               </div>
 
-              <div className="space-y-1 mb-3">
+              <div className="space-y-1 mb-2">
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded bg-green-500" />
-                  <span className="text-green-400">Strong</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
-                    -30 to -50 dBm
-                  </span>
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FFF8E8' }} />
+                  <span className="text-bronze dark:text-bronze">Very Strong</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-40 dBm</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded bg-yellow-500" />
-                  <span className="text-yellow-400">Moderate</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
-                    -50 to -70 dBm
-                  </span>
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FFF0C8' }} />
+                  <span className="text-bronze dark:text-bronze">Strong</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-50 to -40 dBm</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded bg-red-500" />
-                  <span className="text-red-400">Weak</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
-                    Below -70 dBm
-                  </span>
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#D4A373' }} />
+                  <span className="text-bronze dark:text-bronze">Medium</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-60 to -50 dBm</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#8C5E3C' }} />
+                  <span className="text-bronze dark:text-bronze">Weak</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-70 to -60 dBm</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4A2E1A' }} />
+                  <span className="text-bronze dark:text-bronze">Very Weak</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-70 dBm</span>
                 </div>
               </div>
 
               <div className="text-xs text-air-force-blue/50 dark:text-air-force-blue/40">
-                Based on nearby WiFi networks
+                {wifiObservations.length} observations
               </div>
             </div>
           </div>

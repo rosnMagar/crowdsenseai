@@ -72,7 +72,7 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
     }
     init()
 
-    const interval = setInterval(scanNetworks, 5000)
+    const interval = setInterval(scanNetworks, 300000)
     return () => clearInterval(interval)
   }, [])
 
