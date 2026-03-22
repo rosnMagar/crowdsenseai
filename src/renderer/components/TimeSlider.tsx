@@ -57,12 +57,6 @@ export default function TimeSlider({
   const tickClass = theme === 'dark'
     ? 'text-air-force-blue/50'
     : 'text-dark-teal/50'
-  const quickActiveClass = theme === 'dark'
-    ? 'bg-bronze text-cornsilk'
-    : 'bg-dark-teal text-cornsilk'
-  const quickInactiveClass = theme === 'dark'
-    ? 'bg-dark-teal/30 text-air-force-blue hover:bg-dark-teal/50'
-    : 'bg-beige text-dark-teal hover:bg-beige/80'
 
   return (
     <div className={`${containerClass} rounded-lg p-4 backdrop-blur-sm`}>
@@ -95,25 +89,10 @@ export default function TimeSlider({
         
         <div className="flex justify-between mt-1 px-1">
           <span className={`text-[10px] ${tickClass}`}>Now</span>
-          <span className={`text-[10px] ${tickClass}`}>+30m</span>
-          <span className={`text-[10px] ${tickClass}`}>+60m</span>
+          <span className={`text-[10px] ${tickClass}`}>+1h</span>
+          <span className={`text-[10px] ${tickClass}`}>+2h</span>
+          <span className={`text-[10px] ${tickClass}`}>+3h</span>
         </div>
-      </div>
-      
-      <div className="mt-3 flex gap-1 flex-wrap justify-center">
-        {[0, 15, 30, 45, 60].map(offset => (
-          <button
-            key={offset}
-            onClick={() => onChange(offset)}
-            className={`px-2 py-1 text-xs rounded transition-colors
-              ${value === offset 
-                ? quickActiveClass
-                : quickInactiveClass
-              }`}
-          >
-            {formatTime(offset)}
-          </button>
-        ))}
       </div>
     </div>
   )

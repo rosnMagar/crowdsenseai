@@ -1,13 +1,10 @@
 import { useState, useMemo } from 'react'
 import DeckGL from '@deck.gl/react'
-import { ScatterplotLayer, PathLayer } from '@deck.gl/layers'
-import { HeatmapLayer } from '@deck.gl/aggregation-layers'
+import { ScatterplotLayer, PathLayer, PolygonLayer } from '@deck.gl/layers'
 import { Map } from 'react-map-gl/maplibre'
-import { LocationData, QuadrantDensity } from '../types'
+import { LocationData, QuadrantDensity, DensityLevel } from '../types'
 import { useTheme } from '../contexts/ThemeContext'
 import 'maplibre-gl/dist/maplibre-gl.css'
-
-type HeatmapPoint = [longitude: number, latitude: number, weight: number]
 
 interface MapViewProps {
   currentLocation: LocationData | null
@@ -15,6 +12,13 @@ interface MapViewProps {
   heatmapQuadrants?: QuadrantDensity[]
   showHeatmap?: boolean
   heatmapOpacity?: number
+}
+
+const DENSITY_COLORS: Record<number, { fill: [number, number, number, number]; stroke: [number, number, number, number] }> = {
+  0: { fill: [34, 197, 94, 20], stroke: [34, 197, 94, 40] },
+  1: { fill: [34, 197, 94, 120], stroke: [34, 197, 94, 180] },
+  2: { fill: [234, 179, 8, 160], stroke: [234, 179, 8, 200] },
+  3: { fill: [239, 68, 68, 200], stroke: [239, 68, 68, 255] }
 }
 
 const INITIAL_VIEW_STATE = {
@@ -47,32 +51,39 @@ export default function MapView({
     ? [88, 131, 146, 180] as [number, number, number, number]
     : [125, 180, 160, 180] as [number, number, number, number]
 
-  const heatmapData = useMemo<HeatmapPoint[]>(() => {
-    return heatmapQuadrants
-      .filter(d => d.density > 0)
-      .map(d => [d.bounds.centerLon, d.bounds.centerLat, d.density] as HeatmapPoint)
-  }, [heatmapQuadrants])
+  const getQuadrantPolygon = (q: QuadrantDensity) => {
+    return [
+      [q.bounds.minLon, q.bounds.minLat],
+      [q.bounds.maxLon, q.bounds.minLat],
+      [q.bounds.maxLon, q.bounds.maxLat],
+      [q.bounds.minLon, q.bounds.maxLat],
+      [q.bounds.minLon, q.bounds.minLat]
+    ]
+  }
+
+  const quadrantPolygons = heatmapQuadrants.map(q => ({
+    polygon: getQuadrantPolygon(q),
+    density: q.density,
+    quadrantId: q.quadrantId
+  }))
 
   const layers = useMemo(() => {
     const layerList = []
 
-    if (showHeatmap && heatmapData.length > 0) {
+    if (showHeatmap && quadrantPolygons.length > 0) {
       layerList.push(
-        new HeatmapLayer<HeatmapPoint>({
-          id: 'heatmap-layer',
-          data: heatmapData,
-          pickable: false,
-          getPosition: d => [d[0], d[1]],
-          getWeight: d => d[2],
-          radiusPixels: 120,
-          intensity: 1,
-          threshold: 0.03,
-          colorRange: [
-            [212, 163, 115, 15],
-            [212, 163, 115, 60],
-            [212, 163, 115, 130],
-            [212, 163, 115, 220]
-          ],
+        new PolygonLayer({
+          id: 'quadrant-layer',
+          data: quadrantPolygons,
+          pickable: true,
+          stroked: true,
+          filled: true,
+          wireframe: false,
+          lineWidthMinPixels: 1,
+          getPolygon: (d: typeof quadrantPolygons[0]) => d.polygon,
+          getFillColor: (d: typeof quadrantPolygons[0]) => DENSITY_COLORS[d.density as DensityLevel].fill,
+          getLineColor: (d: typeof quadrantPolygons[0]) => DENSITY_COLORS[d.density as DensityLevel].stroke,
+          getLineWidth: 1,
           opacity: heatmapOpacity
         })
       )
@@ -128,7 +139,7 @@ export default function MapView({
     }
 
     return layerList
-  }, [currentLocation, locationHistory, heatmapData, showHeatmap, heatmapOpacity, theme])
+  }, [currentLocation, locationHistory, quadrantPolygons, showHeatmap, heatmapOpacity, theme])
 
   useMemo(() => {
     if (currentLocation && locationHistory.length === 1) {

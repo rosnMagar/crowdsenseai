@@ -19,31 +19,29 @@ interface MapScreenProps {
   setTimeOffset?: (offset: number) => void
   getHeatmapAt?: (offset: number) => Map<string, DensityLevel>
   isAILoading?: boolean
-  confidence?: number
   trainingCountdown?: number
   lastUpdated?: Date | null
-  realTimeUsers?: Map<string, number>
 }
 
 const DENSITY_COLORS: Record<DensityLevel, string> = {
-  0: 'rgba(212, 163, 115, 0.15)',
-  1: 'rgba(212, 163, 115, 0.4)',
-  2: 'rgba(212, 163, 115, 0.7)',
-  3: 'rgba(212, 163, 115, 1.0)'
+  0: 'rgba(34, 197, 94, 0.2)',
+  1: 'rgba(34, 197, 94, 0.5)',
+  2: 'rgba(234, 179, 8, 0.65)',
+  3: 'rgba(239, 68, 68, 0.8)'
 }
 
 const DENSITY_TEXT: Record<DensityLevel, string> = {
-  0: 'text-air-force-blue dark:text-air-force-blue/60',
-  1: 'text-air-force-blue dark:text-air-force-blue',
-  2: 'text-air-force-blue dark:text-air-force-blue',
-  3: 'text-air-force-blue dark:text-air-force-blue'
+  0: 'text-green-500 dark:text-green-400',
+  1: 'text-green-500 dark:text-green-400',
+  2: 'text-yellow-500 dark:text-yellow-400',
+  3: 'text-red-500 dark:text-red-400'
 }
 
 const DENSITY_LABELS: Record<DensityLevel, string> = {
-  0: 'Empty',
-  1: 'Low',
-  2: 'Medium',
-  3: 'High'
+  0: 'Low',
+  1: 'Moderate',
+  2: 'High',
+  3: 'Very High'
 }
 
 export default function MapScreen({ 
@@ -59,10 +57,8 @@ export default function MapScreen({
   setTimeOffset,
   getHeatmapAt,
   isAILoading = false,
-  confidence = 0,
   trainingCountdown,
-  lastUpdated,
-  realTimeUsers
+  lastUpdated
 }: MapScreenProps) {
   const { theme } = useTheme()
 
@@ -83,20 +79,13 @@ export default function MapScreen({
           quadrantId,
           density,
           bounds,
-          count: realTimeUsers?.get(quadrantId) || 0
+          count: 0
         })
       }
     })
     
     return qDensities
-  }, [getHeatmapAt, timeOffset, quadrants, realTimeUsers])
-
-  const totalUsers = useMemo(() => {
-    if (!realTimeUsers) return 0
-    let total = 0
-    realTimeUsers.forEach(count => total += count)
-    return total
-  }, [realTimeUsers])
+  }, [getHeatmapAt, timeOffset, quadrants])
 
   const densityCounts = useMemo(() => {
     const counts: Record<DensityLevel, number> = { 0: 0, 1: 0, 2: 0, 3: 0 }
@@ -144,7 +133,7 @@ export default function MapScreen({
             }`}>
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
-                  Heatmap
+                  Activity Map
                 </span>
                 {isAILoading ? (
                   <span className="text-xs text-amber-400 animate-pulse">Loading...</span>
@@ -170,12 +159,6 @@ export default function MapScreen({
                 ))}
               </div>
 
-              {confidence > 0 && (
-                <div className="text-xs text-air-force-blue/60 dark:text-air-force-blue/60">
-                  Confidence: <span className="text-tea-green">{Math.round(confidence * 100)}%</span>
-                </div>
-              )}
-
               {lastUpdated && (
                 <div className="text-xs text-air-force-blue/50 dark:text-air-force-blue/40 mt-1">
                   Updated: {lastUpdated.toLocaleTimeString()}
@@ -197,7 +180,7 @@ export default function MapScreen({
               value={timeOffset}
               onChange={setTimeOffset}
               min={0}
-              max={60}
+              max={180}
               step={5}
             />
           </div>
@@ -239,16 +222,6 @@ export default function MapScreen({
                 </div>
               </div>
             </div>
-
-            {showHeatmap && (
-              <div className={`mt-2 p-2 ${theme === 'dark' ? 'bg-dark-teal/30' : 'bg-tea-green/10'}`}>
-                <p className="text-[10px] uppercase mb-1 text-air-force-blue dark:text-tea-green">Active Users</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-xl font-bold text-bronze dark:text-ash-grey">{totalUsers}</span>
-                  <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">nearby</span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -279,7 +252,7 @@ export default function MapScreen({
                     : 'bg-dark-teal/20 text-air-force-blue border border-dark-teal/30'
                 }`}
               >
-                {showHeatmap ? 'Heatmap On' : 'Heatmap Off'}
+                {showHeatmap ? 'Activity Map On' : 'Activity Map Off'}
               </button>
             )}
             

@@ -1,6 +1,7 @@
-import { useState } from "react";
 import Header from "../components/Header";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLocationConsent } from "../contexts/LocationContext";
+import { useLocation } from "../hooks/useLocation";
 
 interface SettingsScreenProps {
   onNavigate?: (page: string) => void;
@@ -8,7 +9,15 @@ interface SettingsScreenProps {
 
 export default function SettingsScreen({ onNavigate }: SettingsScreenProps) {
   const { theme, toggleTheme } = useTheme();
-  const [locationSharing, setLocationSharing] = useState(true);
+  const { locationSharing, setLocationSharing } = useLocationConsent();
+  const { isTracking, stopTracking } = useLocation();
+
+  const handleToggleLocationSharing = (value: boolean) => {
+    setLocationSharing(value)
+    if (!value && isTracking) {
+      stopTracking()
+    }
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto">
@@ -103,14 +112,14 @@ export default function SettingsScreen({ onNavigate }: SettingsScreenProps) {
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
-                    checked={locationSharing}
-                    onChange={() => setLocationSharing(!locationSharing)}
+                    checked={locationSharing === true}
+                    onChange={(e) => handleToggleLocationSharing(e.target.checked)}
                     type="checkbox"
                     className="sr-only peer"
                   />
                   <div
                     className={`w-11 h-6 peer-focus:outline-none rounded-full transition-colors ${
-                      locationSharing
+                      locationSharing === true
                         ? theme === "dark"
                           ? "bg-tea-green"
                           : "bg-dark-teal"
@@ -121,7 +130,7 @@ export default function SettingsScreen({ onNavigate }: SettingsScreenProps) {
                   >
                     <div
                       className={`absolute top-[2px] transition-all ${
-                        locationSharing
+                        locationSharing === true
                           ? theme === "dark"
                             ? "left-[22px] bg-light-beige"
                             : "left-[22px] bg-cornsilk"
