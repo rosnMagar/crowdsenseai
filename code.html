@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>CrowdSenseAI | Network Cartographer</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-fixed-variant": "#396371",
+                        "tertiary-fixed-dim": "#b3deef",
+                        "secondary-fixed-dim": "#d0d9b1",
+                        "surface-container-low": "#f7fecd",
+                        "tertiary": "#406a79",
+                        "tertiary-dim": "#335e6c",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#742410",
+                        "error": "#a54731",
+                        "outline": "#7a8740",
+                        "secondary-container": "#dee7bf",
+                        "on-tertiary-container": "#2e5967",
+                        "secondary-dim": "#535c3d",
+                        "primary": "#7d562d",
+                        "inverse-on-surface": "#9ba080",
+                        "inverse-surface": "#0c1001",
+                        "outline-variant": "#b3c072",
+                        "tertiary-container": "#c0ecfd",
+                        "surface-tint": "#7d562d",
+                        "surface-dim": "#dbeb8c",
+                        "primary-container": "#ffdcbd",
+                        "on-surface": "#333c00",
+                        "primary-fixed": "#ffdcbd",
+                        "inverse-primary": "#d9a777",
+                        "background": "#fcffde",
+                        "on-secondary-fixed-variant": "#575f40",
+                        "primary-dim": "#704a22",
+                        "on-primary-fixed": "#5a3811",
+                        "on-background": "#333c00",
+                        "primary-fixed-dim": "#ffca98",
+                        "error-dim": "#5c1202",
+                        "on-primary": "#fff6f1",
+                        "surface-container": "#f0f9bd",
+                        "on-secondary-fixed": "#3b4226",
+                        "surface-variant": "#e2f09d",
+                        "on-primary-container": "#6f4a22",
+                        "surface-container-high": "#e9f4ad",
+                        "on-surface-variant": "#5e6a26",
+                        "tertiary-fixed": "#c0ecfd",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#606848",
+                        "surface-container-highest": "#e2f09d",
+                        "surface-bright": "#fcffde",
+                        "surface": "#fcffde",
+                        "on-primary-fixed-variant": "#7a532a",
+                        "error-container": "#fe8b70",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#4d5537",
+                        "secondary-fixed": "#dee7bf",
+                        "on-tertiary-fixed": "#194654",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            background-color: #fcffde;
+            color: #333c00;
+        }
+        .dark body {
+             background-color: #0c1001; 
+             color: #fff6f1;
+        }
+    </style>
+
+    <!-- React & React Router -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body class="font-body selection:bg-primary-container selection:text-on-primary-container">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        const { MemoryRouter, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+
+        // --- Shared Components ---
+
+        const Sidebar = () => {
+            const location = useLocation();
+            const currentPath = location.pathname;
+
+            const links = [
+                { path: '/', icon: 'map', label: 'Map' },
+                { path: '/insights', icon: 'cell_tower', label: 'Signal Insights' },
+                { path: '/history', icon: 'history', label: 'History' },
+                { path: '/settings', icon: 'settings', label: 'Settings' }
+            ];
+
+            return (
+                <aside class="h-screen w-64 hidden md:flex flex-col left-0 top-0 sticky bg-[#f7fecd] dark:bg-zinc-900 border-r border-[#b3c072]/15 p-4 gap-2 transition-all duration-300 ease-in-out z-40">
+                    <div class="mb-8 px-2">
+                        <h1 class="text-lg font-black text-[#333c00] dark:text-[#fcffde] font-headline tracking-tighter">CrowdSenseAI</h1>
+                        <p class="font-manrope text-[10px] uppercase tracking-widest text-[#7d562d]/70 mt-1">Network Cartographer</p>
+                    </div>
+                    <nav class="flex-1 space-y-1 flex flex-col gap-1">
+                        {links.map(link => {
+                            const isActive = currentPath === link.path;
+                            return (
+                                <Link key={link.path} to={link.path} className={`flex items-center gap-3 px-4 py-3 rounded-sm font-manrope text-sm uppercase tracking-widest transition-all ${isActive ? 'bg-[#e2f09d] dark:bg-zinc-800 text-[#333c00] dark:text-[#fcffde] font-semibold' : 'text-[#333c00]/70 dark:text-[#fcffde]/70 hover:bg-[#e2f09d]/50'}`}>
+                                    <span class="material-symbols-outlined" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>{link.icon}</span>
+                                    <span>{link.label}</span>
+                                </Link>
+                            )
+                        })}
+                    </nav>
+                    <div class="mt-auto p-2">
+                        <button class="w-full border-[1.5px] border-primary text-primary bg-primary/10 py-2 px-4 rounded-sm font-label text-xs font-semibold uppercase tracking-wider hover:bg-primary/20 transition-colors flex justify-center items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">radar</span>
+                            Scan Network
+                        </button>
+                    </div>
+                </aside>
+            );
+        };
+
+        const BottomNav = () => {
+            const location = useLocation();
+            const currentPath = location.pathname;
+
+             const links = [
+                { path: '/', icon: 'map', label: 'Map' },
+                { path: '/insights', icon: 'wifi_find', label: 'Insights' },
+                { path: '/history', icon: 'history', label: 'History' },
+                { path: '/settings', icon: 'settings', label: 'Settings' }
+            ];
+
+            return (
+                <nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-[#fcffde]/90 dark:bg-zinc-950/90 backdrop-blur-xl md:hidden z-50 border-t border-[#b3c072]/15 shadow-[0_-4px_24px_rgba(51,60,0,0.05)]">
+                    {links.map(link => {
+                         const isActive = currentPath === link.path;
+                         return (
+                            <Link key={link.path} to={link.path} className={`flex flex-col items-center justify-center transition-transform active:scale-90 ${isActive ? 'bg-[#e2f09d] dark:bg-zinc-800 text-[#7d562d] dark:text-[#ffdcbd] rounded-sm py-1 px-3' : 'text-[#333c00]/50 dark:text-[#fcffde]/50'}`}>
+                                <span class="material-symbols-outlined mb-1" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>{link.icon}</span>
+                                <span class="font-inter text-[10px] font-semibold uppercase tracking-tighter">{link.label}</span>
+                            </Link>
+                         )
+                    })}
+                </nav>
+            );
+        };
+
+        const Header = ({ title }) => {
+            return (
+                <header class="bg-[#fcffde]/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50 shadow-sm shadow-[#333c00]/5 flex items-center justify-between px-6 py-3 w-full">
+                    <div class="flex items-center gap-4">
+                        <span class="md:hidden text-xl font-bold text-[#333c00] dark:text-[#fcffde] tracking-tighter font-headline">CrowdSenseAI</span>
+                        <h2 class="hidden md:block font-headline text-xl font-bold text-on-surface dark:text-[#fcffde] tracking-tight">{title}</h2>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button class="p-2 hover:bg-[#f7fecd] dark:hover:bg-zinc-800 rounded-full transition-colors text-primary dark:text-[#ffdcbd]">
+                            <span class="material-symbols-outlined">wifi_tethering</span>
+                        </button>
+                        <button class="p-2 hover:bg-[#f7fecd] dark:hover:bg-zinc-800 rounded-full transition-colors text-primary dark:text-[#ffdcbd]">
+                            <span class="material-symbols-outlined">notifications</span>
+                        </button>
+                        <div class="w-8 h-8 bg-secondary-container rounded-sm overflow-hidden border border-outline-variant/20">
+                            <img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKvQpFy2hnTuxtIKvxQYhmjtti4YdlDIpHiZoBdhN4a2IjJ45K8juiuGUXsbew9OGYINR5Uq2JtLRXzHktxlIxCfA2MNG7FvTTbp2oS8eQsnqp0w7w6A3Iqkj5gHuakJ1bSYcKC6mNYVJ5nsJfEXVYlf4yfGPmf92L1EzjUhCRdxz5AzZbKT4YTwAl_hjrS6pEpam2Xyo7p_lhrTUIg9-vvpdNjcoX73KmB68slfTtK129-gYUKDreAZ-cfhZBqkshNWBmNgErxsU"/>
+                        </div>
+                    </div>
+                </header>
+            );
+        }
+
+        // --- Screens ---
+
+        const MapScreen = () => {
+            useEffect(() => {
+                document.documentElement.classList.remove('light');
+                document.documentElement.classList.add('dark');
+            }, []);
+
+            return (
+                <div class="flex-1 flex flex-col h-screen overflow-hidden">
+                    <Header title="Network Cartographer" />
+                    <main class="flex-1 relative bg-surface-container overflow-hidden">
+                        <div class="absolute inset-0 z-0 bg-zinc-900">
+                            <img class="w-full h-full object-cover opacity-40 grayscale contrast-125 mix-blend-multiply" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCh4zbxHDl1S9SpPUARqEG66ujVvpkafFBATupOeAPNoogmm8m9TETPBcr6AHxhyZgJhUSQslqBUbDeo77_z8861D1bz_bY8YissPvGs1-UEY_1XVEsUGyfyr8SvwN8y3osFU_JCAXoFSmHgIJyIWdDeBiri_a58Hgi0KDY9po-cTHVScxLvv7Q7Kdp86HCsK7HDiqCc6C8mjoNQ_m_xLEgbcSX7PGVUIILg6A5_PTpcXW-yhfoPYpuuCSFfEyt6-VupUcaccNrNrU" alt="Map" />
+                            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-container/20"></div>
+                            
+                            {/* Overlay Sims */}
+                            <div class="absolute top-1/4 left-1/3 w-64 h-64 bg-tertiary/20 blur-[100px] rounded-full"></div>
+                            <div class="absolute bottom-1/3 right-1/4 w-48 h-48 bg-primary/10 blur-[80px] rounded-full"></div>
+
+                            <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                                <div class="relative flex items-center justify-center">
+                                    <div class="absolute w-32 h-32 bg-primary/10 rounded-full animate-pulse"></div>
+                                    <div class="w-6 h-6 bg-primary border-4 border-white shadow-xl rounded-full z-10"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="absolute top-6 left-6 right-6 flex items-start justify-between pointer-events-none z-10">
+                            <div class="flex flex-col gap-4 pointer-events-auto">
+                                <div class="bg-zinc-900/80 backdrop-blur-xl p-1 rounded-lg shadow-2xl flex items-center border border-outline-variant/15 text-[#fcffde]">
+                                    <div class="flex items-center px-4 py-2 gap-3 min-w-[300px]">
+                                        <span class="material-symbols-outlined text-[#fcffde]/60">search</span>
+                                        <input class="bg-transparent border-none focus:ring-0 text-sm font-body w-full placeholder-[#fcffde]/50 outline-none" placeholder="Search coordinates or nodes..." type="text"/>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-col gap-2 pointer-events-auto">
+                                <button class="w-10 h-10 bg-zinc-900/70 backdrop-blur-xl border border-outline-variant/15 flex items-center justify-center text-primary-fixed-dim hover:bg-zinc-800 transition-colors rounded-lg shadow-lg">
+                                    <span class="material-symbols-outlined">layers</span>
+                                </button>
+                                <button class="w-10 h-10 bg-zinc-900/70 backdrop-blur-xl border border-outline-variant/15 flex items-center justify-center text-primary-fixed-dim hover:bg-zinc-800 transition-colors rounded-lg shadow-lg">
+                                    <span class="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>my_location</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="absolute bottom-24 left-4 right-4 z-10 md:w-80 md:left-6">
+                            <div class="bg-zinc-900/90 backdrop-blur-2xl border border-outline-variant/10 p-4 shadow-2xl">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p class="text-[10px] font-semibold text-outline-variant uppercase tracking-widest mb-1">Current Sector</p>
+                                        <h2 class="text-xl font-headline font-bold text-surface-bright tracking-tight">Mission District Hub</h2>
+                                    </div>
+                                    <div class="flex items-center gap-1 bg-tertiary/20 px-2 py-1 rounded-sm">
+                                        <span class="w-2 h-2 rounded-full bg-tertiary"></span>
+                                        <span class="text-[10px] font-bold text-tertiary-fixed uppercase">Optimal</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="bg-zinc-800/50 p-3">
+                                        <p class="text-[10px] text-outline-variant uppercase mb-1">Signal Strength</p>
+                                        <div class="flex items-end gap-1">
+                                            <span class="text-2xl font-bold text-primary-fixed-dim">-84</span>
+                                            <span class="text-[10px] mb-1 text-outline-variant">dBm</span>
+                                        </div>
+                                    </div>
+                                    <div class="bg-zinc-800/50 p-3">
+                                        <p class="text-[10px] text-outline-variant uppercase mb-1">Nodes Detected</p>
+                                        <div class="flex items-end gap-1">
+                                            <span class="text-2xl font-bold text-primary-fixed-dim">12</span>
+                                            <span class="text-[10px] mb-1 text-outline-variant">active</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="absolute bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-xl border-t border-outline-variant/10 px-6 py-3 hidden md:flex items-center justify-between z-20 text-[#fcffde]">
+                            <div class="flex items-center gap-6">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary text-sm">location_on</span>
+                                    <span class="text-xs font-bold uppercase tracking-tight">San Francisco, CA</span>
+                                </div>
+                                <div class="h-4 w-[1px] bg-outline-variant/20"></div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[10px] font-bold text-[#fcffde]/60 uppercase tracking-widest">Coordinates</span>
+                                    <span class="text-xs font-mono">37.7749° N, 122.4194° W</span>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const InsightsScreen = () => {
+             useEffect(() => {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
+            }, []);
+
+            return (
+                 <div class="flex-1 flex flex-col min-h-screen">
+                    <Header title="Signal Insights" />
+                    <main class="flex-1 p-6 md:p-12 max-w-7xl mx-auto w-full pb-24 md:pb-12">
+                         <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                            <div>
+                                <h2 class="text-3xl font-headline font-medium text-on-surface tracking-tight mb-1">Live Analytics</h2>
+                                <p class="text-on-surface-variant font-body">Real-time network node performance metrics.</p>
+                            </div>
+                         </div>
+                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                             <div class="bg-surface-container-high p-6 rounded-lg shadow-sm border border-outline-variant/10 flex flex-col justify-center items-center text-center">
+                                 <span class="material-symbols-outlined text-4xl text-primary mb-4">cell_tower</span>
+                                 <h3 class="font-headline font-bold text-lg">Density</h3>
+                                 <p class="text-3xl font-black mt-2">High</p>
+                             </div>
+                              <div class="bg-surface-container-high p-6 rounded-lg shadow-sm border border-outline-variant/10 flex flex-col justify-center items-center text-center">
+                                 <span class="material-symbols-outlined text-4xl text-secondary mb-4">speed</span>
+                                 <h3 class="font-headline font-bold text-lg">Avg Throughput</h3>
+                                 <p class="text-3xl font-black mt-2">142 Mbps</p>
+                             </div>
+                              <div class="bg-surface-container-high p-6 rounded-lg shadow-sm border border-outline-variant/10 flex flex-col justify-center items-center text-center">
+                                 <span class="material-symbols-outlined text-4xl text-tertiary mb-4">radar</span>
+                                 <h3 class="font-headline font-bold text-lg">Blindspots</h3>
+                                 <p class="text-3xl font-black mt-2">3 Detected</p>
+                             </div>
+                         </div>
+                    </main>
+                </div>
+            )
+        }
+
+        const HistoryScreen = () => {
+             useEffect(() => {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
+            }, []);
+
+            return (
+                <div class="flex-1 flex flex-col min-h-screen bg-surface">
+                    <Header title="Signal History" />
+                    <main class="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full pb-24 md:pb-8">
+                        <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                            <div>
+                                <h2 class="text-3xl font-headline font-medium text-on-surface tracking-tight mb-1">Signal History</h2>
+                                <p class="text-on-surface-variant font-body">Reviewing 124 global signal measurements recorded this week.</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="bg-surface-container-high hover:bg-surface-container-highest px-4 py-2 rounded-sm text-xs font-label font-bold uppercase tracking-wider text-secondary transition-colors">
+                                    Export CSV
+                                </button>
+                                <button class="bg-primary text-on-primary px-4 py-2 rounded-sm text-xs font-label font-bold uppercase tracking-wider shadow-sm transition-transform active:scale-95">
+                                    New Discovery
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                            <div class="lg:col-span-8 space-y-4 overflow-x-auto">
+                                <div class="bg-surface-container-lowest rounded-lg p-1 min-w-[600px]">
+                                    <table class="w-full border-separate border-spacing-y-2">
+                                        <thead>
+                                            <tr class="text-left font-label text-[10px] text-on-surface-variant uppercase tracking-widest">
+                                                <th class="px-6 py-2 font-semibold">Location</th>
+                                                <th class="px-4 py-2 font-semibold">Strength</th>
+                                                <th class="px-4 py-2 font-semibold">Access Point</th>
+                                                <th class="px-4 py-2 font-semibold text-right">Contribution</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="font-body text-sm">
+                                            <tr class="bg-surface hover:bg-surface-container transition-colors cursor-pointer group">
+                                                <td class="px-6 py-4 rounded-l-lg">
+                                                    <div class="flex flex-col">
+                                                        <span class="font-semibold text-on-surface">5th Avenue, NYC</span>
+                                                        <span class="text-xs text-on-surface-variant/70">40.7851° N, 73.9683° W</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-4">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                                                        <span class="font-medium text-primary">-65 dBm</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-4">
+                                                    <div class="flex flex-col">
+                                                        <span class="text-on-surface truncate max-w-[120px]">Starbucks_Free</span>
+                                                        <span class="text-[10px] font-mono text-on-surface-variant">AC:4E:91:88:22:10</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4 rounded-r-lg text-right">
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-tighter">Verified</span>
+                                                </td>
+                                            </tr>
+                                            <tr class="bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer border-l-2 border-primary">
+                                                <td class="px-6 py-4 rounded-l-lg">
+                                                    <div class="flex flex-col">
+                                                        <span class="font-semibold text-on-surface">Shibuya Crossing, Tokyo</span>
+                                                        <span class="text-xs text-on-surface-variant/70">35.6595° N, 139.7004° E</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-4">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                                                        <span class="font-medium text-primary">-52 dBm</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-4">
+                                                    <div class="flex flex-col">
+                                                        <span class="text-on-surface truncate max-w-[120px]">JR_East_Free</span>
+                                                        <span class="text-[10px] font-mono text-on-surface-variant">D4:61:9D:11:AA:FF</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4 rounded-r-lg text-right">
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-tighter">Verified</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="lg:col-span-4 space-y-6">
+                                <div class="bg-surface-container-high p-4 rounded-lg shadow-sm border border-outline-variant/10">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="font-label text-[10px] font-bold uppercase tracking-widest text-secondary">Spatial Context</h3>
+                                        <span class="material-symbols-outlined text-sm text-primary">open_in_full</span>
+                                    </div>
+                                    <div class="aspect-video w-full rounded-sm bg-surface overflow-hidden relative mb-4">
+                                        <img class="w-full h-full object-cover opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjAjU-cGsNBVFedY0kSa0XzMlVJP8acN0CwX73mmRJ6z80qDAb1umwM12XRGd0U-9DQ03q6kfC3FW4hZiA5LQtXIDbMI9Qb46yNgc_X9Dp9GMd4j60xBLiUckdGurcLeKYIBn7iRZzjTbJUoQXd0sqh36-rhF8A6pM7hL8Uti0F2N8_itwh_rKz8N3SbuKSQy5D7do5iGdCRfqB-R5p-KwZj-fj4ak-k_c57d6C30Exh40YrXfI0VO0YsmMZeVG39JB6LcyWHDwO0" alt="Map Preview" />
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
+                                                <div class="w-3 h-3 rounded-full bg-primary border-2 border-on-primary"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-xs text-on-surface-variant">Selected Node</span>
+                                            <span class="text-xs font-semibold text-on-surface">Shibuya_JR_Main</span>
+                                        </div>
+                                        <button class="w-full mt-2 border-[1.5px] border-secondary text-secondary py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest hover:bg-secondary/5 transition-colors">
+                                            View Full Analysis
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const SettingsScreen = () => {
+             useEffect(() => {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
+            }, []);
+
+            return (
+                <div class="flex-1 flex flex-col min-h-screen">
+                    <Header title="System Configuration" />
+                    <main class="flex-1 p-6 md:p-12 max-w-6xl mx-auto w-full pb-24 md:pb-12">
+                        <section class="mb-12">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="md:col-span-2 bg-surface-container-low p-8 flex flex-col md:flex-row gap-8 items-center md:items-start border-l-4 border-primary/20">
+                                    <div class="w-32 h-32 bg-primary-container shrink-0 overflow-hidden shadow-sm">
+                                        <img alt="User avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvc6p3VLNTFG52-bpNnXqCsDfphWO5FuO4Hjk_372MtFn7Q6cNf7cL8blAQgW1Qz9QXo_YJzMLll_XM7ndgsaKjxOA551YUtA3wUtlljgWkstyQyOiKPZlLz8Y7PKdzHVKOv0aK4ZqnA-A3dZkbrZhJnrZBilFedSN3jjd8ZpnCcAWP-r4WGULJB11cnzyM0zg5IYMqeDBKWMsPCscGhaxLgqQ7J9RW-kRKnhj-QSD_Io-BWHykPU7qoBqAwtO2E9X3lE9iPfWs9A"/>
+                                    </div>
+                                    <div class="flex-1 text-center md:text-left">
+                                        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-secondary mb-2 block">Network Cartographer Rank IV</span>
+                                        <h3 class="font-headline text-3xl font-bold text-on-surface mb-1">Adrian Sterling</h3>
+                                        <p class="text-on-surface-variant text-sm mb-4">adrian.s@crowdsense.ai • Joined Sept 2023</p>
+                                        <div class="flex flex-wrap gap-2 justify-center md:justify-start">
+                                            <span class="bg-secondary-container text-on-secondary-container px-3 py-1 text-[11px] font-semibold uppercase tracking-tighter">1.2k Contributions</span>
+                                            <span class="bg-surface-variant text-on-surface-variant px-3 py-1 text-[11px] font-semibold uppercase tracking-tighter">Elite Mapper</span>
+                                        </div>
+                                    </div>
+                                    <button class="border-[1.5px] border-primary text-primary px-6 py-2 text-xs font-bold uppercase tracking-widest hover:bg-primary/5 active:scale-95 transition-all self-center md:self-start">
+                                        Edit Profile
+                                    </button>
+                                </div>
+                                <div class="bg-surface-container-high p-8 flex flex-col justify-center border-l-4 border-secondary/20">
+                                    <h4 class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-6">Device Status</h4>
+                                    <div class="space-y-4">
+                                        <div class="flex justify-between items-end border-b border-outline-variant/10 pb-2">
+                                            <span class="text-xs text-on-surface-variant">Active Nodes</span>
+                                            <span class="font-headline text-xl font-bold">14</span>
+                                        </div>
+                                        <div class="flex justify-between items-end border-b border-outline-variant/10 pb-2">
+                                            <span class="text-xs text-on-surface-variant">Uptime Rate</span>
+                                            <span class="font-headline text-xl font-bold">99.4%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="mb-12">
+                            <div class="flex items-center gap-4 mb-8">
+                                <div class="h-[1.5px] flex-1 bg-outline-variant/20"></div>
+                                <h3 class="font-headline text-lg font-bold uppercase tracking-widest text-on-surface">Sharing Preferences</h3>
+                                <div class="h-[1.5px] flex-1 bg-outline-variant/20"></div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div class="bg-surface-container-low p-6 hover:bg-surface-container transition-colors relative overflow-hidden">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div class="p-2 bg-primary-container/30 text-primary">
+                                            <span class="material-symbols-outlined">location_on</span>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input defaultChecked type="checkbox" class="sr-only peer"/>
+                                            <div class="w-11 h-6 bg-outline-variant/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                    <h4 class="font-headline font-bold text-on-surface mb-2">Location Sharing</h4>
+                                    <p class="text-sm text-on-surface-variant leading-relaxed">Contribute real-time GPS coordinates to help map dead zones.</p>
+                                </div>
+                            </div>
+                        </section>
+                    </main>
+                </div>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div class="flex min-h-screen">
+                    <Sidebar />
+                    <Routes>
+                        <Route path="/" element={<MapScreen />} />
+                        <Route path="/insights" element={<InsightsScreen />} />
+                        <Route path="/history" element={<HistoryScreen />} />
+                        <Route path="/settings" element={<SettingsScreen />} />
+                    </Routes>
+                    <BottomNav />
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(
+            <MemoryRouter>
+                <App />
+            </MemoryRouter>
+        );
+    </script>
+</body>
+</html>

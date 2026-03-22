@@ -1,21 +1,25 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./src/renderer/**/*.{js,ts,jsx,tsx,html}'],
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-        },
+        'tea-green': '#ccd5ae',
+        'beige': '#e9edc9',
+        'cornsilk': '#fefae0',
+        'papaya-whip': '#faedcd',
+        'bronze': '#d4a373',
+        'ink-black': '#01161e',
+        'dark-teal': '#124559',
+        'air-force-blue': '#598392',
+        'ash-grey': '#aec3b0',
+        'light-beige': '#eff6e0',
+      },
+      fontFamily: {
+        'headline': ['Manrope', 'sans-serif'],
+        'body': ['Inter', 'sans-serif'],
+        'label': ['Inter', 'sans-serif'],
       },
     },
   },
