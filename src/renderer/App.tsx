@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from './components/Sidebar'
 import BottomNav from './components/BottomNav'
 import MapScreen from './pages/MapScreen'
@@ -100,11 +101,11 @@ function AppContent() {
           />
         )
       case 'insights':
-        return <InsightsScreen onNavigate={handleNavigate} />
+        return <InsightsScreen onNavigate={handleNavigate as any} />
       case 'history':
-        return <HistoryScreen history={locationHistory} onNavigate={handleNavigate} />
+        return <HistoryScreen history={locationHistory} onNavigate={handleNavigate as any} />
       case 'settings':
-        return <SettingsScreen onNavigate={handleNavigate} />
+        return <SettingsScreen onNavigate={handleNavigate as any} />
       default:
         return (
           <MapScreen
@@ -133,7 +134,18 @@ function AppContent() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar currentPage={currentPage} onNavigate={(page) => setCurrentPage(page as Page)} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {renderPage()}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPage}
+            initial={{ opacity: 0, y: 15, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -15, filter: 'blur(6px)' }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full h-full flex flex-col isolate"
+          >
+            {renderPage()}
+          </motion.div>
+        </AnimatePresence>
       </div>
       <BottomNav currentPage={currentPage} onNavigate={(page) => setCurrentPage(page as Page)} />
     </div>

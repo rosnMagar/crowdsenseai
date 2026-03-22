@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { uploadImageFile, uploadImageMetadata } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { LocationData } from '../types';
@@ -89,8 +90,20 @@ export default function ImageUploader({ onClose, onSuccess, currentLocation }: I
     : 'bg-cornsilk/95 border border-tea-green/20 text-ink-black';
     
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className={`w-full max-w-md p-6 rounded-2xl shadow-2xl ${containerClass}`}>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className={`w-full max-w-md p-6 rounded-2xl shadow-2xl ${containerClass}`}
+      >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-headline font-bold">Capture Location</h2>
           <button 
@@ -178,7 +191,7 @@ export default function ImageUploader({ onClose, onSuccess, currentLocation }: I
             {isUploading ? 'Uploading...' : 'Save Geotagged Image'}
           </button>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import MapView from '../components/MapView'
 import Header from '../components/Header'
 import TimeSlider from '../components/TimeSlider'
@@ -242,29 +243,40 @@ export default function MapScreen({
           />
         </div>
 
-        {isUploaderOpen && (
-          <ImageUploader 
-            currentLocation={location}
-            onClose={() => setIsUploaderOpen(false)}
-            onSuccess={() => {
-              setIsUploaderOpen(false)
-              loadImages()
-            }}
-          />
-        )}
+        <AnimatePresence>
+          {isUploaderOpen && (
+            <ImageUploader 
+              currentLocation={location}
+              onClose={() => setIsUploaderOpen(false)}
+              onSuccess={() => {
+                setIsUploaderOpen(false)
+                loadImages()
+              }}
+            />
+          )}
+        </AnimatePresence>
 
-        {selectedImageGroup && selectedImageGroup.length > 0 && (
-          <div 
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" 
-            onClick={() => setSelectedImageGroup(null)}
-          >
-            <div 
-              className="relative max-w-6xl w-full max-h-[90vh] flex flex-col items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" 
-              onClick={e => e.stopPropagation()}
+        <AnimatePresence>
+          {selectedImageGroup && selectedImageGroup.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" 
+              onClick={() => setSelectedImageGroup(null)}
             >
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="relative max-w-6xl w-full max-h-[90vh] flex flex-col items-center justify-center p-4" 
+                onClick={e => e.stopPropagation()}
+              >
               <button 
                 onClick={() => setSelectedImageGroup(null)}
-                className="absolute -top-4 -right-4 md:top-4 md:right-4 text-white/70 hover:text-white bg-black/50 hover:bg-black/90 rounded-full w-12 h-12 flex items-center justify-center transition-all focus:outline-none z-[110] shadow-2xl border border-white/10"
+                className="absolute -top-4 -right-4 md:top-4 md:right-4 text-white/70 hover:text-white bg-black/50 hover:bg-black/90 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:rotate-90 active:scale-90 focus:outline-none z-[110] shadow-2xl border border-white/10"
                 title="Close Image"
               >
                 <span className="material-symbols-outlined text-2xl">close</span>
@@ -277,18 +289,24 @@ export default function MapScreen({
                       e.stopPropagation(); 
                       setCarouselIndex(i => i === 0 ? selectedImageGroup.length - 1 : i - 1); 
                     }}
-                    className="absolute left-0 md:left-4 z-20 text-white hover:text-teal-400 bg-black/60 hover:bg-black/90 p-3 rounded-full transition-all shadow-xl"
+                    className="absolute left-0 md:left-4 z-20 text-white hover:text-teal-400 bg-black/60 hover:bg-black/90 p-3 rounded-full transition-all duration-300 hover:scale-110 hover:-translate-x-1 active:scale-90 shadow-xl"
                   >
                     <span className="material-symbols-outlined text-3xl">chevron_left</span>
                   </button>
                 )}
                 
-                <img 
-                  src={selectedImageGroup[carouselIndex].image_url} 
-                  alt={selectedImageGroup[carouselIndex].description} 
-                  className="max-w-full max-h-[60vh] md:max-h-[70vh] object-contain rounded-xl shadow-2xl border border-white/20 transition-opacity duration-300" 
-                  key={selectedImageGroup[carouselIndex].id}
-                />
+                <AnimatePresence mode="wait">
+                  <motion.img 
+                    key={selectedImageGroup[carouselIndex].id || carouselIndex}
+                    src={selectedImageGroup[carouselIndex].image_url} 
+                    alt={selectedImageGroup[carouselIndex].description} 
+                    initial={{ opacity: 0, scale: 0.98, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, scale: 0.98, filter: 'blur(4px)' }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                    className="max-w-full max-h-[60vh] md:max-h-[70vh] object-contain rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/20" 
+                  />
+                </AnimatePresence>
 
                 {selectedImageGroup.length > 1 && (
                   <button 
@@ -296,7 +314,7 @@ export default function MapScreen({
                       e.stopPropagation(); 
                       setCarouselIndex(i => (i + 1) % selectedImageGroup.length); 
                     }}
-                    className="absolute right-0 md:right-4 z-20 text-white hover:text-teal-400 bg-black/60 hover:bg-black/90 p-3 rounded-full transition-all shadow-xl"
+                    className="absolute right-0 md:right-4 z-20 text-white hover:text-teal-400 bg-black/60 hover:bg-black/90 p-3 rounded-full transition-all duration-300 hover:scale-110 hover:translate-x-1 active:scale-90 shadow-xl"
                   >
                     <span className="material-symbols-outlined text-3xl">chevron_right</span>
                   </button>
@@ -326,9 +344,10 @@ export default function MapScreen({
                   )}
                 </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {currentMode === "activity" && (
           <div className="absolute top-4 left-4 z-20">
@@ -405,7 +424,6 @@ export default function MapScreen({
                   <span className="text-xs text-teal-400">Live</span>
                 )}
               </div>
-
               <div className="space-y-1 mb-2">
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FF6B35' }} />
@@ -535,21 +553,29 @@ export default function MapScreen({
           <div className="flex items-center gap-2">
             <button
                onClick={() => setIsUploaderOpen(true)}
-               className="w-9 h-9 flex items-center justify-center rounded-full bg-teal-500 text-white shadow-lg hover:bg-teal-400 transition-colors mr-1"
+               className="w-10 h-10 flex items-center justify-center rounded-full bg-teal-500 text-white shadow-lg hover:shadow-teal-500/50 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 active:scale-95 mr-2"
                title="Add Geotagged Photo"
             >
               <span className="material-symbols-outlined text-sm">add_a_photo</span>
             </button>
-            <div className="flex items-center rounded-full overflow-hidden border border-dark-teal/30">
+            <div className="flex items-center rounded-full overflow-hidden border border-dark-teal/40 bg-black/30 backdrop-blur-md p-1 gap-1 shadow-inner">
               <button
                 onClick={() => handleModeChange("activity")}
-                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle("activity")}`}
+                className={`py-1.5 px-5 text-xs font-bold transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] rounded-full ${
+                  currentMode === "activity"
+                    ? "bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.5)] scale-100 translate-y-0"
+                    : "text-air-force-blue hover:text-white hover:bg-white/10 scale-95 opacity-60 hover:opacity-100"
+                }`}
               >
                 Activity
               </button>
               <button
                 onClick={() => handleModeChange("wifi")}
-                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle("wifi")}`}
+                className={`py-1.5 px-5 text-xs font-bold transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] rounded-full ${
+                  currentMode === "wifi"
+                    ? "bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.5)] scale-100 translate-y-0"
+                    : "text-air-force-blue hover:text-white hover:bg-white/10 scale-95 opacity-60 hover:opacity-100"
+                }`}
               >
                 Signal
               </button>
