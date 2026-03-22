@@ -161,7 +161,7 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
     
     const loadRealWifiData = async () => {
       try {
-        const data = await fetchWifiData(15)
+        const data = await fetchWifiData(0) // 0 means fetch ALL historical data
         if (data.length > 0) {
           const formattedObs: WifiObservation[] = data.map((d, i) => ({
             id: `db_${i}`,
@@ -173,8 +173,8 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
             frequency: 2400,
             timestamp: Date.now()
           }))
-          // Limit to a reasonable number of recent points to avoid performance issues
-          setWifiObservations(formattedObs.slice(-200))
+          // Limit to a higher number so we show the full historical map
+          setWifiObservations(formattedObs.slice(-5000))
         }
       } catch (err) {
         console.error('Failed to fetch wifi data from DB', err)

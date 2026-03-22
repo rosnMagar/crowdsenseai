@@ -187,15 +187,20 @@ export async function uploadWifiData(data: WifiUploadData[]): Promise<void> {
   }
 }
 
-export async function fetchWifiData(minutesBack: number = 15): Promise<WifiUploadData[]> {
+export async function fetchWifiData(minutesBack: number = 0): Promise<WifiUploadData[]> {
   if (!supabaseUrl || !supabaseAnonKey) return []
 
   try {
-    const cutoffTime = new Date(Date.now() - minutesBack * 60 * 1000).toISOString()
-    const { data, error } = await supabase
+    let query = supabase
       .from('wifi_observations')
       .select('bssid, ssid, signal_strength, latitude, longitude')
-      .gte('collected_at', cutoffTime)
+
+    if (minutesBack > 0) {
+      const cutoffTime = new Date(Date.now() - minutesBack * 60 * 1000).toISOString()
+      query = query.gte('collected_at', cutoffTime)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error('Failed to fetch WiFi data:', error)
