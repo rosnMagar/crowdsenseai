@@ -239,8 +239,9 @@ async function trainAndSaveModel() {
   
   console.log(`Total fetched: ${data.length} records`)
   
-  const sampleRate = Math.ceil(data.length / 30000)
-  const sampledData = data.filter((_, i) => i % sampleRate === 0)
+  const maxSamples = 5000
+  const sampleRate = Math.max(1, Math.ceil(data.length / maxSamples))
+  const sampledData = data.filter((_, i) => i % sampleRate === 0).slice(0, maxSamples)
   console.log(`Sampled to ${sampledData.length} records for training`)
   
   const qIds = getAllQuadrantIds()
@@ -282,11 +283,11 @@ async function trainAndSaveModel() {
   console.log('Training network...')
   
   const inputSize = GRID_CONFIG.totalQuadrants + 25
-  const hiddenSizes = [64, 32]
+  const hiddenSizes = [32, 16]
   const outputSize = GRID_CONFIG.totalQuadrants
   
   const network = new NeuralNetwork(inputSize, hiddenSizes, outputSize)
-  const result = network.train(inputs, outputs, 100)
+  const result = network.train(inputs, outputs, 10)
   
   console.log(`Training complete. Loss: ${result.loss.toFixed(4)}, Accuracy: ${(result.accuracy * 100).toFixed(2)}%`)
   
