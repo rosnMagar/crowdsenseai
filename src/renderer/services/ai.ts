@@ -1,8 +1,14 @@
 import { LocationData, PredictionPoint } from '../types'
 
+/**
+ * Configuration for the Gaussian Process Regressor.
+ */
 export interface GPRConfig {
+  /** The length scale of the kernel. Larger values mean smoother predictions. */
   lengthScale: number
+  /** The prior variance of the function. */
   variance: number
+  /** The noise level in the training data. */
   noise: number
 }
 
@@ -11,6 +17,10 @@ export interface GPResponse {
   uncertainties: number[]
 }
 
+/**
+ * A Lightweight Gaussian Process Regressor (GPR) for spatial interpolation.
+ * Used to predict signal strength at unobserved locations.
+ */
 export class GaussianProcessRegressor {
   private config: GPRConfig
   private trainingData: { X: number[][], y: number[] } = { X: [], y: [] }

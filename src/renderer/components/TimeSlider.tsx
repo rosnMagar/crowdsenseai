@@ -1,15 +1,28 @@
 import { useCallback } from 'react'
 import { useTheme } from '../contexts/ThemeContext'
 
+/**
+ * Props for the TimeSlider component.
+ */
 interface TimeSliderProps {
+  /** Current value in minutes ahead of the present time. */
   value: number
+  /** Callback function triggered when the slider value changes. */
   onChange: (minutes: number) => void
+  /** Minimum value allowed (default: 0). */
   min?: number
+  /** Maximum value allowed (default: 180, representing 3 hours). */
   max?: number
+  /** Increment step for the slider (default: 5). */
   step?: number
+  /** Layout orientation of the slider. */
   orientation?: 'horizontal' | 'vertical'
 }
 
+/**
+ * A specialized range input component for selecting futuristic time offsets.
+ * Primarily used to control Gaussian Process signal strength predictions.
+ */
 export default function TimeSlider({
   value,
   onChange,
@@ -20,10 +33,16 @@ export default function TimeSlider({
 }: TimeSliderProps) {
   const { theme } = useTheme()
 
+  /**
+   * Handles the input change event and propagates the numeric value.
+   */
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(parseInt(e.target.value, 10))
   }, [onChange])
 
+  /**
+   * Formats the numeric minute value into a human-readable string (e.g., "Now", "+45m", "+2h 30m").
+   */
   const formatTime = (minutes: number): string => {
     if (minutes === 0) return 'Now'
     if (minutes < 60) return `+${minutes}m`
@@ -32,6 +51,7 @@ export default function TimeSlider({
     return mins === 0 ? `+${hours}h` : `+${hours}h ${mins}m`
   }
 
+  // Dynamic styling based on the current theme
   const containerClass = theme === 'dark' ? 'bg-ink-black/80 border border-white/10' : 'bg-papaya-whip/90 border border-black/5'
   const accentColor = theme === 'dark' ? '#D4A373' : '#2D5A4A'
 

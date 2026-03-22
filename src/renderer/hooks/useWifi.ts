@@ -55,6 +55,12 @@ export interface WifiAccessPoint {
 
 const SCAN_INTERVAL = 10000
 
+/**
+ * Custom hook for managing WiFi scanning and statistics.
+ * Handles periodic scans, data uploading to Supabase, and status tracking.
+ * 
+ * @param onRegisterSource - Optional callback to register a heatmap source for the map.
+ */
 export function useWifi(onRegisterSource?: (source: ReturnType<typeof getWifiIntensityHeatmapSource>) => void) {
   const [networks, setNetworks] = useState<WifiAccessPoint[]>([])
   const [isScanning, setIsScanning] = useState(false)
@@ -63,6 +69,9 @@ export function useWifi(onRegisterSource?: (source: ReturnType<typeof getWifiInt
   const [isSupported, setIsSupported] = useState(true)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  /**
+   * Calculates signal statistics from a list of access points.
+   */
   const calculateStats = useCallback((aps: WifiAccessPoint[]): WifiStats => {
     if (aps.length === 0) {
       return {
@@ -105,6 +114,9 @@ export function useWifi(onRegisterSource?: (source: ReturnType<typeof getWifiInt
     }
   }, [])
 
+  /**
+   * Performs a single WiFi scan and uploads the results paired with the current location.
+   */
   const scan = useCallback(async () => {
     if (!window.electronAPI?.wifi) {
       setError('WiFi API not available')

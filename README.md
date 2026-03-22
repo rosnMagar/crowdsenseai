@@ -9,8 +9,9 @@ An Electron + React application for AI-powered location tracking with deck.gl vi
 - **deck.gl** - High-performance WebGL visualization
 - **MapLibre GL** - Open-source map rendering (no API key needed)
 - **Tailwind CSS** - Utility-first styling with custom color palette
+- **Gaussian Process Regression** - AI/ML service for signal strength prediction
+- **WiFi Scanning** - Integrated BSSID mapping and data collection
 - **Supabase** - PostgreSQL with document-based JSONB storage
-- **Gaussian Process Regression** - AI/ML service (structure ready for integration)
 
 ## Getting Started
 
@@ -48,18 +49,16 @@ src/
 ├── preload/        # Preload scripts for IPC
 │   └── index.ts
 └── renderer/       # React frontend
-    ├── components/ # UI components
-    │   ├── Header.tsx      # Top navigation bar
-    │   ├── Sidebar.tsx     # Desktop navigation
-    │   ├── BottomNav.tsx    # Mobile bottom navigation
-    │   └── MapView.tsx      # deck.gl map visualization
-    ├── contexts/   # React contexts
-    │   └── ThemeContext.tsx # Theme provider (light/dark mode)
-    ├── pages/      # Page components
     │   ├── MapScreen.tsx      # Main map view with info cards
     │   ├── InsightsScreen.tsx  # Analytics dashboard
     │   ├── HistoryScreen.tsx  # Signal history table
     │   └── SettingsScreen.tsx  # User preferences
+    ├── components/ # UI components
+    │   ├── Header.tsx      # Top navigation bar
+    │   ├── Sidebar.tsx     # Desktop navigation
+    │   ├── BottomNav.tsx    # Mobile bottom navigation
+    │   ├── MapView.tsx      # deck.gl map visualization
+    │   └── TimeSlider.tsx   # Prediction time-ahead selector
     ├── hooks/      # Custom React hooks
     │   └── useLocation.ts
     ├── services/   # Business logic
@@ -74,6 +73,9 @@ src/
 
 ### Current Features
 
+- **WiFi Access Point Mapping** - BSSID-based location estimation and scanning
+- **Gaussian Process Regression (Kriging)** - Predictive signal strength mapping with temporal sliding
+- **Interactive Time Slider** - View predicted signal strength up to 3 hours into the future
 - Real-time location tracking using `navigator.geolocation`
 - Interactive 3D map visualization with deck.gl
 - Location history with path visualization
@@ -88,9 +90,8 @@ src/
 
 ### Planned Features
 
-- **WiFi Access Point Mapping** - Link to AP UIDs for location estimation
-- **Gaussian Process Regression (Kriging)** - Predictive signal strength mapping
 - **Mapbox Integration** - Alternative map provider option
+- **Offline Map Support** - Caching tiles for field use
 
 ## Theme System
 

@@ -64,6 +64,10 @@ const INITIAL_VIEW_STATE = {
   bearing: 0
 }
 
+/**
+ * Main map visualization component using deck.gl and MapLibre.
+ * Displays real-time location, movement history, WiFi observations, and predicted heatmaps.
+ */
 function MapView({ 
   currentLocation, 
   locationHistory,
@@ -80,6 +84,9 @@ function MapView({
   const [viewState, setViewState] = useState(() => ({ ...INITIAL_VIEW_STATE }))
   const [hoverInfo, setHoverInfo] = useState<{ x: number, y: number, group: GeotaggedImage[] } | null>(null)
 
+  /**
+   * Memoized theme colors for map layers to ensure consistent visuals across light/dark modes.
+   */
   const themeColors = useMemo(() => {
     if (theme === 'dark') {
       return {
@@ -95,6 +102,9 @@ function MapView({
     }
   }, [theme])
 
+  /**
+   * Selects the appropriate MapLibre style based on the current theme.
+   */
   const mapStyle = useMemo(() => 
     theme === 'dark'
       ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
@@ -102,6 +112,9 @@ function MapView({
     [theme]
   )
 
+  /**
+   * Converts raw quadrant density data into PolygonLayer-friendly polygons.
+   */
   const quadrantPolygons = useMemo(() => {
     return heatmapQuadrants.map(q => ({
       polygon: [
@@ -116,6 +129,9 @@ function MapView({
     }))
   }, [heatmapQuadrants])
 
+  /**
+   * Constructs path data for the movement trail.
+   */
   const pathData = useMemo(() => {
     if (locationHistory.length > 1) {
       return [{ path: locationHistory.map(loc => [loc.longitude, loc.latitude] as [number, number]) }]
@@ -126,6 +142,9 @@ function MapView({
   const nowRef = useRef(0)
   nowRef.current = Date.now()
 
+  /**
+   * Orchestrates the assembly of all deck.gl layers for the current map state.
+   */
   const layers = useMemo(() => {
     const layerList: any[] = []
 

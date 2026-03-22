@@ -35,6 +35,10 @@ interface HeatmapProviderProps {
   children: React.ReactNode
 }
 
+/**
+ * Context provider for managing multiple heatmap sources (e.g., WiFi intensity, Crowd density).
+ * Handles data fetching, aggregation, and active source switching.
+ */
 export function HeatmapProvider({ children }: HeatmapProviderProps) {
   const [sources, setSources] = useState<Map<string, HeatmapSource>>(new Map())
   const [currentSourceId, setCurrentSourceId] = useState<string | null>(null)
@@ -44,10 +48,16 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
 
   const registeredSources = useMemo(() => Array.from(sources.values()), [sources])
 
+  /**
+   * Returns the currently active heatmap source object.
+   */
   const currentSource = useMemo(() => {
     return currentSourceId ? sources.get(currentSourceId) || null : null
   }, [sources, currentSourceId])
 
+  /**
+   * Aggregates AI-predicted quadrant density into displayable heatmap points.
+   */
   const densityHeatmapData = useMemo<HeatmapPoint[]>(() => {
     return quadrants
       .filter(q => q.density > 0)
@@ -59,6 +69,9 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
       }))
   }, [quadrants])
 
+  /**
+   * Generates heatmap points from raw WiFi signal observations if the source is active.
+   */
   const wifiHeatmapData = useMemo<HeatmapPoint[]>(() => {
     if (currentSourceId === 'wifi-intensity' && wifiObservations.length > 0) {
       return getWifiHeatmapPoints(wifiObservations)
@@ -66,6 +79,9 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
     return []
   }, [currentSourceId, wifiObservations])
 
+  /**
+   * Final data set for the map visualization, depending on the active source.
+   */
   const heatmapData = useMemo<HeatmapPoint[]>(() => {
     if (!currentSource) return densityHeatmapData
     
@@ -80,6 +96,9 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
     return currentSource.getData()
   }, [currentSource, densityHeatmapData, wifiHeatmapData])
 
+  /**
+   * Registers a new data source for the heatmap system.
+   */
   const registerSource = useCallback((source: HeatmapSource) => {
     setSources(prev => {
       const next = new Map(prev)
