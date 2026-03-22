@@ -84,6 +84,8 @@ export default function MapScreen({
   const [selectedImageGroup, setSelectedImageGroup] = useState<GeotaggedImage[] | null>(null)
   const [carouselIndex, setCarouselIndex] = useState(0)
   const [imageGroups, setImageGroups] = useState<GeotaggedImage[][]>([])
+  const [isLegendOpen, setIsLegendOpen] = useState(true)
+  const [isSwitchingMode, setIsSwitchingMode] = useState(false)
 
   const loadImages = useCallback(async () => {
     const images = await fetchGeotaggedImages()
@@ -103,17 +105,27 @@ export default function MapScreen({
   }, [loadImages])
 
   const handleModeChange = useCallback((mode: MapMode) => {
-    setCurrentMode(mode)
-    if (mode === 'activity') {
-      setCurrentSource('density')
-    } else if (mode === 'wifi') {
-      setCurrentSource('wifi-intensity')
-      if (wifiObservations.length === 0) {
-        const dummyData = generateDummyWifiObservations(25)
-        dummyData.forEach(obs => addWifiObs(obs))
+    if (mode === currentMode) return;
+    
+    setIsSwitchingMode(true);
+    
+    // Give the UI a moment to show the loader before the heavy lift
+    setTimeout(() => {
+      setCurrentMode(mode)
+      if (mode === 'activity') {
+        setCurrentSource('density')
+      } else if (mode === 'wifi') {
+        setCurrentSource('wifi-intensity')
+        if (wifiObservations.length === 0) {
+          const dummyData = generateDummyWifiObservations(25)
+          dummyData.forEach(obs => addWifiObs(obs))
+        }
       }
-    }
-  }, [setCurrentSource, addWifiObs, wifiObservations.length])
+      
+      // Simulation of work or just letting the map component catch up
+      setTimeout(() => setIsSwitchingMode(false), 900);
+    }, 100);
+  }, [currentMode, setCurrentSource, addWifiObs, wifiObservations.length])
 
   const scanWifi = useCallback(async (loc: LocationData) => {
     if (!window.electronAPI?.wifi) return
@@ -244,6 +256,40 @@ export default function MapScreen({
         </div>
 
         <AnimatePresence>
+          {isSwitchingMode && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-xl"
+            >
+              <div className="relative w-20 h-20 mb-6">
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0 border-4 border-teal-500/20 border-t-teal-500 rounded-full"
+                />
+                <motion.div 
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-2 border-2 border-bronze/20 border-t-bronze rounded-full"
+                />
+              </div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center"
+              >
+                <p className="text-teal-400 font-headline font-black tracking-[0.3em] uppercase text-xs mb-2">Analyzing Grid</p>
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-4 py-1 rounded-full border border-white/5 bg-white/5">
+                  {currentMode === 'activity' ? 'Switching to Signal Intensity' : 'Loading Crowd Activity'}
+                </p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
           {isUploaderOpen && (
             <ImageUploader 
               currentLocation={location}
@@ -350,180 +396,221 @@ export default function MapScreen({
         </AnimatePresence>
 
         {currentMode === "activity" && (
-          <div className="absolute top-4 left-4 z-20">
-            <div
-              className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
+          <div className="absolute top-4 left-4 z-20 max-w-[calc(100vw-2rem)] md:max-w-xs">
+            <motion.div
+              layout
+              className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-2xl ${
                 theme === "dark"
                   ? "bg-ink-black/90 border-air-force-blue/10"
                   : "bg-cornsilk/90 border-tea-green/10"
               }`}
             >
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-xs font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
-                  Activity Map
-                </span>
-                {isAILoading ? (
-                  <span className="text-xs text-amber-400 animate-pulse">
-                    Loading...
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
+                    Activity Map
                   </span>
-                ) : (
-                  <span className="text-xs text-green-400">Live</span>
+                  {isAILoading ? (
+                    <span className="text-[10px] text-amber-400 animate-pulse">Loading...</span>
+                  ) : (
+                    <span className="text-[10px] text-green-400">Live</span>
+                  )}
+                </div>
+                <button 
+                  onClick={() => setIsLegendOpen(!isLegendOpen)}
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                >
+                  <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${isLegendOpen ? 'rotate-180' : ''}`}>
+                    keyboard_arrow_down
+                  </span>
+                </button>
+              </div>
+
+              <AnimatePresence initial={false}>
+                {isLegendOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-1.5 mb-2 pt-1 border-t border-black/5 dark:border-white/5 mt-2">
+                      {([0, 1, 2, 3] as DensityLevel[]).map((level) => (
+                        <div key={level} className="flex items-center gap-2 text-[10px] md:text-xs">
+                          <div
+                            className="w-2.5 h-2.5 rounded-sm"
+                            style={{ backgroundColor: DENSITY_COLORS[level] }}
+                          />
+                          <span className={DENSITY_TEXT[level]}>
+                            {DENSITY_LABELS[level]}
+                          </span>
+                          <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
+                            {densityCounts[level]} cells
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {lastUpdated && (
+                      <div className="text-[10px] text-air-force-blue/50 dark:text-air-force-blue/40">
+                        {lastUpdated.toLocaleTimeString()}
+                      </div>
+                    )}
+                  </motion.div>
                 )}
-              </div>
-
-              <div className="space-y-1 mb-3">
-                {([0, 1, 2, 3] as DensityLevel[]).map((level) => (
-                  <div key={level} className="flex items-center gap-2 text-xs">
-                    <div
-                      className="w-3 h-3 rounded"
-                      style={{
-                        backgroundColor: DENSITY_COLORS[level],
-                      }}
-                    />
-                    <span className={DENSITY_TEXT[level]}>
-                      {DENSITY_LABELS[level]}
-                    </span>
-                    <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
-                      {densityCounts[level]} cells
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {lastUpdated && (
-                <div className="text-xs text-air-force-blue/50 dark:text-air-force-blue/40 mt-1">
-                  Updated: {lastUpdated.toLocaleTimeString()}
-                </div>
-              )}
-
-              {trainingCountdown !== undefined && trainingCountdown > 0 && (
-                <div className="text-xs text-amber-400/70 mt-1">
-                  Next training: {formatCountdown(trainingCountdown)}
-                </div>
-              )}
-            </div>
+              </AnimatePresence>
+            </motion.div>
           </div>
         )}
 
         {currentMode === "wifi" && (
-          <div className="absolute top-4 left-4 z-20">
-            <div
-              className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
+          <div className="absolute top-4 left-4 z-20 max-w-[calc(100vw-2rem)] md:max-w-xs">
+            <motion.div
+              layout
+              className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-2xl ${
                 theme === "dark"
                   ? "bg-ink-black/90 border-air-force-blue/10"
                   : "bg-cornsilk/90 border-tea-green/10"
               }`}
             >
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-xs font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
-                  WiFi Signal Map
-                </span>
-                {isScanning ? (
-                  <span className="text-xs text-amber-400 animate-pulse">Scanning...</span>
-                ) : (
-                  <span className="text-xs text-teal-400">Live</span>
-                )}
-              </div>
-              <div className="space-y-1 mb-2">
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FF6B35' }} />
-                  <span className="text-bronze dark:text-bronze">Strong</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-40 dBm</span>
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
+                    WiFi Signal Map
+                  </span>
+                  {isScanning ? (
+                    <span className="text-[10px] text-amber-400 animate-pulse">Scanning...</span>
+                  ) : (
+                    <span className="text-[10px] text-teal-400">Live</span>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#CC7722' }} />
-                  <span className="text-bronze dark:text-bronze">Good</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-50 dBm</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#D4A373' }} />
-                  <span className="text-bronze dark:text-bronze">Medium</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-60 dBm</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FFE4C4' }} />
-                  <span className="text-bronze dark:text-bronze">Weak</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-70 dBm</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#FFFEF0' }} />
-                  <span className="text-bronze dark:text-bronze">Very Weak</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-80 dBm</span>
-                </div>
+                <button 
+                  onClick={() => setIsLegendOpen(!isLegendOpen)}
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                >
+                  <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${isLegendOpen ? 'rotate-180' : ''}`}>
+                    keyboard_arrow_down
+                  </span>
+                </button>
               </div>
 
-              <div className="text-xs text-air-force-blue/50 dark:text-air-force-blue/40">
-                {wifiObservations.length} observations
-              </div>
-            </div>
+              <AnimatePresence initial={false}>
+                {isLegendOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-1.5 mb-2 pt-1 border-t border-black/5 dark:border-white/5 mt-2">
+                      <div className="flex items-center gap-2 text-[10px] md:text-xs">
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#FF6B35' }} />
+                        <span className="text-bronze dark:text-bronze">Strong</span>
+                        <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-40 dBm</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] md:text-xs">
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#CC7722' }} />
+                        <span className="text-bronze dark:text-bronze">Good</span>
+                        <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-50 dBm</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] md:text-xs">
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#D4A373' }} />
+                        <span className="text-bronze dark:text-bronze">Medium</span>
+                        <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-60 dBm</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] md:text-xs">
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#FFE4C4' }} />
+                        <span className="text-bronze dark:text-bronze">Weak</span>
+                        <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-70 dBm</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] md:text-xs">
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#FFFEF0' }} />
+                        <span className="text-bronze dark:text-bronze">Very Weak</span>
+                        <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-80 dBm</span>
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-air-force-blue/50 dark:text-air-force-blue/40">
+                      {wifiObservations.length} observations
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           </div>
         )}
 
         {currentMode === "activity" && setTimeOffset && (
-          <div className="absolute top-4 right-4 z-20 w-64">
-            <TimeSlider
-              value={timeOffset}
-              onChange={setTimeOffset}
-              min={0}
-              max={180}
-              step={5}
-            />
-          </div>
+          <>
+            {/* Desktop: Top-Right Horizontal */}
+            <div className="hidden md:block absolute top-8 right-4 z-20 w-64">
+              <TimeSlider
+                value={timeOffset}
+                onChange={setTimeOffset}
+                min={0}
+                max={180}
+                step={5}
+                orientation="horizontal"
+              />
+            </div>
+
+            {/* Mobile: Left-Side Vertical */}
+            <div className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 z-20 w-auto">
+              <TimeSlider
+                value={timeOffset}
+                onChange={setTimeOffset}
+                min={0}
+                max={180}
+                step={5}
+                orientation="vertical"
+              />
+            </div>
+          </>
         )}
 
-        <div className="absolute bottom-32 left-4 right-4 z-10 w-72 mx-auto md:w-80 md:left-6 md:bottom-24">
+        <div className="absolute bottom-32 md:bottom-24 left-4 right-4 md:left-6 z-10 w-auto max-w-sm md:w-80 mx-auto md:mx-0">
           <div
-            className={`backdrop-blur-2xl border p-3 shadow-2xl ${
+            className={`backdrop-blur-2xl border p-3 md:p-4 shadow-2xl rounded-2xl ${
               theme === "dark"
                 ? "bg-ink-black/90 border-air-force-blue/10"
                 : "bg-cornsilk/90 border-tea-green/10"
             }`}
           >
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 text-air-force-blue dark:text-tea-green">
+            <div className="flex justify-between items-start mb-2 md:mb-3">
+              <div className="overflow-hidden">
+                <p className="text-[9px] md:text-[10px] font-semibold uppercase tracking-widest mb-0.5 text-air-force-blue dark:text-tea-green">
                   Current Sector
                 </p>
-                <h2 className="text-lg font-headline font-bold tracking-tight">
-                  {location ? "Your Location" : "Waiting for GPS..."}
+                <h2 className="text-base md:text-lg font-headline font-bold tracking-tight truncate">
+                  {location ? "Active Zone" : "Finding GPS..."}
                 </h2>
               </div>
-              <div className="flex items-center gap-1 bg-dark-teal/20 px-2 py-1 rounded">
-                <span className="w-2 h-2 rounded-full bg-dark-teal"></span>
-                <span className="text-[10px] font-bold uppercase">
-                  {isTracking ? "Active" : "Paused"}
+              <div className="flex items-center gap-1.5 bg-dark-teal/10 dark:bg-dark-teal/20 px-2 py-1 rounded-full border border-dark-teal/10">
+                <span className={`w-1.5 h-1.5 rounded-full ${isTracking ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                <span className="text-[9px] font-black uppercase tracking-tighter">
+                  {isTracking ? "Live" : "Paused"}
                 </span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div
-                className={`p-2 ${theme === "dark" ? "bg-dark-teal/50" : "bg-papaya-whip"}`}
-              >
-                <p className="text-[10px] uppercase mb-1 text-air-force-blue dark:text-tea-green">
-                  Signal
-                </p>
-                <div className="flex items-end gap-1">
-                  <span className="text-xl font-bold text-bronze dark:text-ash-grey">
+              <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-white/5" : "bg-black/5"}`}>
+                <p className="text-[9px] uppercase mb-0.5 opacity-50 font-bold">Signal</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg md:text-xl font-black text-teal-600 dark:text-teal-400">
                     {currentSignal !== -100 ? currentSignal : "--"}
                   </span>
-                  <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">
-                    dBm
-                  </span>
+                  <span className="text-[9px] font-bold opacity-40">dBm</span>
                 </div>
               </div>
-              <div
-                className={`p-2 ${theme === "dark" ? "bg-dark-teal/50" : "bg-papaya-whip"}`}
-              >
-                <p className="text-[10px] uppercase mb-1 text-air-force-blue dark:text-tea-green">
-                  Points
-                </p>
-                <div className="flex items-end gap-1">
-                  <span className="text-xl font-bold text-bronze dark:text-ash-grey">
-                    {locationHistory.length}
+              <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-white/5" : "bg-black/5"}`}>
+                <p className="text-[9px] uppercase mb-0.5 opacity-50 font-bold">Accuracy</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg md:text-xl font-black text-amber-600 dark:text-amber-400">
+                    High
                   </span>
-                  <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">
-                    logged
-                  </span>
+                  <span className="text-[9px] font-bold opacity-40">GPS</span>
                 </div>
               </div>
             </div>
@@ -531,13 +618,13 @@ export default function MapScreen({
         </div>
 
         <div
-          className={`absolute bottom-20 md:bottom-0 left-0 right-0 backdrop-blur-xl border-t px-6 py-3 flex items-center justify-between z-20 ${
+          className={`absolute bottom-20 md:bottom-0 left-0 right-0 backdrop-blur-xl border-t px-4 md:px-6 py-3 flex flex-col md:flex-row items-center justify-between z-20 gap-3 md:gap-0 ${
             theme === "dark"
               ? "bg-ink-black/90 border-air-force-blue/10 text-light-beige"
               : "bg-cornsilk/90 border-tea-green/10 text-ink-black"
           }`}
         >
-          <div className="flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-6">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-bronze text-sm">
                 location_on
@@ -550,46 +637,49 @@ export default function MapScreen({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-               onClick={() => setIsUploaderOpen(true)}
-               className="w-10 h-10 flex items-center justify-center rounded-full bg-teal-500 text-white shadow-lg hover:shadow-teal-500/50 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 active:scale-95 mr-2"
-               title="Add Geotagged Photo"
-            >
-              <span className="material-symbols-outlined text-sm">add_a_photo</span>
-            </button>
-            <div className="flex items-center rounded-full overflow-hidden border border-dark-teal/40 bg-black/30 backdrop-blur-md p-1 gap-1 shadow-inner">
+          <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-2 md:gap-4">
+            <div className="flex items-center gap-2 flex-1 md:flex-none">
               <button
-                onClick={() => handleModeChange("activity")}
-                className={`py-1.5 px-5 text-xs font-bold transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] rounded-full ${
-                  currentMode === "activity"
-                    ? "bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.5)] scale-100 translate-y-0"
-                    : "text-air-force-blue hover:text-white hover:bg-white/10 scale-95 opacity-60 hover:opacity-100"
-                }`}
+                 onClick={() => setIsUploaderOpen(true)}
+                 className="w-10 h-10 flex items-center justify-center rounded-full bg-teal-500 text-white shadow-lg hover:shadow-teal-500/50 transition-all duration-300 hover:scale-110 active:scale-95"
+                 title="Add Geotagged Photo"
               >
-                Activity
+                <span className="material-symbols-outlined text-sm">add_a_photo</span>
               </button>
-              <button
-                onClick={() => handleModeChange("wifi")}
-                className={`py-1.5 px-5 text-xs font-bold transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] rounded-full ${
-                  currentMode === "wifi"
-                    ? "bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.5)] scale-100 translate-y-0"
-                    : "text-air-force-blue hover:text-white hover:bg-white/10 scale-95 opacity-60 hover:opacity-100"
-                }`}
-              >
-                Signal
-              </button>
+              
+              <div className="flex items-center rounded-full overflow-hidden border border-dark-teal/40 bg-black/30 backdrop-blur-md p-1 gap-1 shadow-inner flex-1 md:flex-none justify-center">
+                <button
+                  onClick={() => handleModeChange("activity")}
+                  className={`flex-1 md:flex-none py-1.5 px-3 md:px-5 text-[10px] md:text-xs font-bold transition-all duration-400 rounded-full ${
+                    currentMode === "activity"
+                      ? "bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.3)]"
+                      : "text-air-force-blue hover:text-white opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  Activity
+                </button>
+                <button
+                  onClick={() => handleModeChange("wifi")}
+                  className={`flex-1 md:flex-none py-1.5 px-3 md:px-5 text-[10px] md:text-xs font-bold transition-all duration-400 rounded-full ${
+                    currentMode === "wifi"
+                      ? "bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.3)]"
+                      : "text-air-force-blue hover:text-white opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  Signal
+                </button>
+              </div>
             </div>
 
             <button
               onClick={handleStartTracking}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+              className={`px-4 md:px-6 py-2 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${
                 isTracking
-                  ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50"
-                  : "bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/50"
+                  ? "bg-red-500/20 text-red-400 border border-red-500/40"
+                  : "bg-green-500/20 text-green-400 border border-green-500/40"
               }`}
             >
-              {isTracking ? "Stop Tracking" : "Start Tracking"}
+              {isTracking ? "Stop" : "Start"} Tracking
             </button>
           </div>
         </div>

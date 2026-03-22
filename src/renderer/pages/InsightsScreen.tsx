@@ -152,39 +152,39 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
-              <div className={`p-4 md:p-6 rounded-lg shadow-sm border flex flex-col justify-center items-center text-center ${
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-8">
+              <div className={`p-4 md:p-6 rounded-2xl shadow-sm border flex flex-col justify-center items-center text-center ${
                 theme === 'dark'
-                  ? 'bg-dark-teal border-air-force-blue/10'
-                  : 'bg-beige border-tea-green/10'
+                  ? 'bg-dark-teal/10 border-air-force-blue/10'
+                  : 'bg-papaya-whip/20 border-tea-green/10'
               }`}>
-                <span className="material-symbols-outlined text-3xl md:text-4xl text-teal-400 mb-2">wifi</span>
-                <h3 className="font-headline font-bold text-xs md:text-sm">Network</h3>
-                <p className="text-lg md:text-xl font-black mt-2 text-bronze dark:text-ash-grey truncate max-w-full">
-                  {connection?.ssid || 'Not Connected'}
+                <span className="material-symbols-outlined text-2xl md:text-3xl text-teal-500 mb-1.5">wifi</span>
+                <h3 className="font-headline font-bold text-[10px] md:text-xs uppercase opacity-50 tracking-widest">Network</h3>
+                <p className="text-base md:text-xl font-black mt-1 text-bronze dark:text-ash-grey truncate max-w-full">
+                  {connection?.ssid || 'None'}
                 </p>
               </div>
 
-              <div className={`p-4 md:p-6 rounded-lg shadow-sm border flex flex-col justify-center items-center text-center ${
+              <div className={`p-4 md:p-6 rounded-2xl shadow-sm border flex flex-col justify-center items-center text-center ${
                 theme === 'dark'
-                  ? 'bg-dark-teal border-air-force-blue/10'
-                  : 'bg-beige border-tea-green/10'
+                  ? 'bg-dark-teal/10 border-air-force-blue/10'
+                  : 'bg-papaya-whip/20 border-tea-green/10'
               }`}>
-                <span className="material-symbols-outlined text-3xl md:text-4xl text-teal-400 mb-2">signal_cellular_alt</span>
-                <h3 className="font-headline font-bold text-xs md:text-sm">Signal Strength</h3>
-                <p className={`text-2xl md:text-3xl font-black mt-2 ${currentQuality?.color || 'text-gray-400'}`}>
-                  {connection ? `${formatSignal(connection.signal)} dBm` : '-- dBm'}
+                <span className="material-symbols-outlined text-2xl md:text-3xl text-teal-500 mb-1.5">signal_cellular_alt</span>
+                <h3 className="font-headline font-bold text-[10px] md:text-xs uppercase opacity-50 tracking-widest">Signal</h3>
+                <p className={`text-xl md:text-3xl font-black mt-1 ${currentQuality?.color || 'text-gray-400'}`}>
+                  {connection ? `${formatSignal(connection.signal)}` : '--'} <span className="text-[10px] font-bold opacity-40">dBm</span>
                 </p>
               </div>
 
-              <div className={`p-4 md:p-6 rounded-lg shadow-sm border flex flex-col justify-center items-center text-center ${
+              <div className={`p-4 md:p-6 rounded-2xl shadow-sm border flex flex-col justify-center items-center text-center ${
                 theme === 'dark'
-                  ? 'bg-dark-teal border-air-force-blue/10'
-                  : 'bg-beige border-tea-green/10'
+                  ? 'bg-dark-teal/10 border-air-force-blue/10'
+                  : 'bg-papaya-whip/20 border-tea-green/10'
               }`}>
-                <span className="material-symbols-outlined text-3xl md:text-4xl text-teal-400 mb-2">speed</span>
-                <h3 className="font-headline font-bold text-xs md:text-sm">Quality</h3>
-                <p className={`text-2xl md:text-3xl font-black mt-2 capitalize ${currentQuality?.color || 'text-gray-400'}`}>
+                <span className="material-symbols-outlined text-2xl md:text-3xl text-teal-500 mb-1.5">speed</span>
+                <h3 className="font-headline font-bold text-[10px] md:text-xs uppercase opacity-50 tracking-widest">Quality</h3>
+                <p className={`text-xl md:text-3xl font-black mt-1 capitalize ${currentQuality?.color || 'text-gray-400'}`}>
                   {currentQuality?.label || 'N/A'}
                 </p>
               </div>
@@ -192,40 +192,40 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
 
             {connection && (
               <div className="mb-8">
-                <h3 className="text-lg font-headline font-bold mb-4">Current Connection</h3>
-                <div className={`p-6 rounded-lg border ${
+                <h3 className="text-base md:text-lg font-headline font-bold mb-4">Current Connection</h3>
+                <div className={`p-4 md:p-6 rounded-2xl border ${
                   theme === 'dark'
-                    ? 'bg-dark-teal border-air-force-blue/20'
-                    : 'bg-beige border-tea-green/20'
+                    ? 'bg-dark-teal/10 border-air-force-blue/20'
+                    : 'bg-papaya-whip/20 border-tea-green/20'
                 }`}>
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 md:gap-4 min-w-0">
                       <SignalBars signal={connection.signal} />
-                      <div>
-                        <h4 className="text-xl font-bold">{connection.ssid}</h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">{connection.bssid}</p>
+                      <div className="min-w-0">
+                        <h4 className="text-base md:text-xl font-bold truncate">{connection.ssid}</h4>
+                        <p className="text-[10px] md:text-sm text-gray-500 font-mono truncate">{connection.bssid}</p>
                       </div>
                     </div>
                     {connection.security !== 'none' && (
-                      <span className="material-symbols-outlined text-teal-400">lock</span>
+                      <span className="material-symbols-outlined text-teal-500 text-sm md:text-base">lock</span>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Channel</p>
-                      <p className="font-bold">{connection.channel}</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                    <div className="bg-black/5 dark:bg-white/5 p-2 rounded-xl">
+                      <p className="text-[9px] text-gray-500 uppercase font-bold">Channel</p>
+                      <p className="font-bold text-sm">{connection.channel}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Frequency</p>
-                      <p className="font-bold">{formatFrequency(connection.frequency)}</p>
+                    <div className="bg-black/5 dark:bg-white/5 p-2 rounded-xl">
+                      <p className="text-[9px] text-gray-500 uppercase font-bold">Frequency</p>
+                      <p className="font-bold text-sm">{formatFrequency(connection.frequency)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Signal</p>
-                      <p className="font-bold">{formatSignal(connection.signal)} dBm</p>
+                    <div className="bg-black/5 dark:bg-white/5 p-2 rounded-xl">
+                      <p className="text-[9px] text-gray-500 uppercase font-bold">Signal</p>
+                      <p className="font-bold text-sm">{formatSignal(connection.signal)} dBm</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Security</p>
-                      <p className="font-bold text-sm">{connection.security}</p>
+                    <div className="bg-black/5 dark:bg-white/5 p-2 rounded-xl">
+                      <p className="text-[9px] text-gray-500 uppercase font-bold">Security</p>
+                      <p className="font-bold text-[10px] md:text-sm truncate">{connection.security}</p>
                     </div>
                   </div>
                 </div>
@@ -241,12 +241,12 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
                   </span>
                 )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-20 md:pb-0">
                 {networks.length === 0 ? (
-                  <div className={`p-8 rounded-lg text-center ${
-                    theme === 'dark' ? 'bg-dark-teal' : 'bg-beige'
+                  <div className={`p-8 rounded-2xl text-center ${
+                    theme === 'dark' ? 'bg-dark-teal/10' : 'bg-papaya-whip/10'
                   }`}>
-                    <p className="text-gray-500">No networks detected.</p>
+                    <p className="opacity-50 text-sm">No networks detected.</p>
                   </div>
                 ) : (
                   networks
@@ -256,38 +256,38 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
                       return (
                         <div
                           key={network.bssid || index}
-                          className={`p-4 rounded-lg border flex items-center justify-between gap-4 ${
+                          className={`p-3 md:p-4 rounded-xl border flex items-center justify-between gap-3 ${
                             network.bssid === connection?.bssid
                               ? theme === 'dark'
-                                ? 'bg-teal-900/30 border-teal-500/50'
+                                ? 'bg-teal-900/20 border-teal-500/50'
                                 : 'bg-teal-50 border-teal-500/50'
                               : theme === 'dark'
-                                ? 'bg-dark-teal/50 border-air-force-blue/20'
-                                : 'bg-beige/50 border-tea-green/20'
-                          }`}
+                                ? 'bg-dark-teal/5'
+                                : 'bg-black/5'
+                          } border-black/5 dark:border-white/5`}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-center gap-2 md:gap-3 min-w-0">
                             <SignalBars signal={network.signal} />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <p className="font-medium truncate">{network.ssid}</p>
+                                <p className="font-bold text-xs md:text-sm truncate">{network.ssid}</p>
                                 {network.bssid === connection?.bssid && (
-                                  <span className="text-xs bg-teal-500 text-white px-2 py-0.5 rounded">Connected</span>
+                                  <span className="text-[8px] bg-teal-500 text-white px-1.5 py-0.5 rounded-full font-black uppercase">Live</span>
                                 )}
                               </div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                              <p className="text-[10px] opacity-50 font-medium">
                                 Ch {network.channel} • {formatFrequency(network.frequency)}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-3 text-xs">
                             {network.security !== 'none' && (
-                              <span className="material-symbols-outlined text-gray-400" style={{ fontSize: 16 }}>
+                              <span className="material-symbols-outlined opacity-30" style={{ fontSize: 14 }}>
                                 lock
                               </span>
                             )}
-                            <span className={`font-mono ${quality.color}`}>
-                              {formatSignal(network.signal)} dBm
+                            <span className={`font-black ${quality.color}`}>
+                              {formatSignal(network.signal)} <span className="text-[9px] opacity-40">dBm</span>
                             </span>
                           </div>
                         </div>

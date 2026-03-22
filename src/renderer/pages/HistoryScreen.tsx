@@ -76,43 +76,43 @@ export default function HistoryScreen({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+        <div className="overflow-x-auto pb-4">
           <div
-            className={`rounded-lg p-1 min-w-[600px] ${
-              theme === "dark" ? "bg-dark-teal/30" : "bg-papaya-whip/50"
+            className={`rounded-2xl p-1 min-w-[500px] md:min-w-full ${
+              theme === "dark" ? "bg-dark-teal/20" : "bg-papaya-whip/30"
             }`}
           >
-            <table className="w-full border-separate border-spacing-y-2">
+            <table className="w-full border-separate border-spacing-y-1 md:border-spacing-y-2">
               <thead>
-                <tr className="text-left font-label text-[10px] uppercase tracking-widest text-air-force-blue dark:text-tea-green">
-                  <th className="px-6 py-2 font-semibold">Location</th>
-                  <th className="px-4 py-2 font-semibold">Strength</th>
+                <tr className="text-left font-label text-[9px] md:text-[10px] uppercase tracking-widest text-air-force-blue/60 dark:text-tea-green/60 px-4">
+                  <th className="px-4 py-2 font-black">Location Details</th>
+                  <th className="px-4 py-2 font-black text-right">Intensity</th>
                 </tr>
               </thead>
-              <tbody className="font-body text-sm">
+              <tbody className="font-body text-xs md:text-sm">
                 {pageData.map((item, i) => (
                   <tr
                     key={i}
-                    className={`transition-colors cursor-pointer group ${
+                    className={`transition-all group ${
                       theme === "dark"
-                        ? "bg-ink-black hover:bg-dark-teal/50"
-                        : "bg-cornsilk hover:bg-beige"
+                        ? "bg-ink-black/40 hover:bg-dark-teal/40"
+                        : "bg-white hover:bg-beige/40"
                     }`}
                   >
-                    <td className="px-6 py-4 rounded-l-lg">
+                    <td className="px-4 py-3 rounded-l-xl">
                       <div className="flex flex-col">
-                        <span className="font-semibold">{item.location}</span>
-                        <span className="text-xs opacity-70">
+                        <span className="font-bold text-sm md:text-base mb-0.5">{item.location}</span>
+                        <span className="text-[10px] md:text-xs opacity-50 font-mono">
                           {item.coordinates}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-bronze"></div>
-                        <span className="font-medium text-bronze">
-                          {item.wifiSignal} dBm
+                    <td className="px-4 py-3 rounded-r-xl text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="font-black text-teal-600 dark:text-teal-400">
+                          {item.wifiSignal}
                         </span>
+                        <span className="text-[9px] md:text-[10px] opacity-40 font-bold uppercase tracking-tighter">dBm</span>
                       </div>
                     </td>
                   </tr>

@@ -102,10 +102,10 @@ export default function ImageUploader({ onClose, onSuccess, currentLocation }: I
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`w-full max-w-md p-6 rounded-2xl shadow-2xl ${containerClass}`}
+        className={`w-full max-w-md p-5 md:p-6 rounded-2xl shadow-2xl ${containerClass} max-h-[90vh] overflow-y-auto`}
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-headline font-bold">Capture Location</h2>
+        <div className="flex justify-between items-center mb-4 md:mb-6">
+          <h2 className="text-lg md:text-xl font-headline font-bold">Capture Location</h2>
           <button 
             onClick={onClose} 
             className="text-air-force-blue/60 hover:text-red-500 transition-colors"
@@ -123,11 +123,11 @@ export default function ImageUploader({ onClose, onSuccess, currentLocation }: I
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-2 opacity-70">
+            <label className="block text-[10px] md:text-xs font-bold uppercase tracking-wider mb-2 opacity-70">
               Upload Image
             </label>
             <div 
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+              className={`border-2 border-dashed rounded-xl p-4 md:p-8 text-center cursor-pointer transition-colors ${
                 file 
                   ? 'border-teal-500 bg-teal-500/10' 
                   : 'border-air-force-blue/30 hover:border-teal-500/50 hover:bg-air-force-blue/5'
@@ -143,27 +143,27 @@ export default function ImageUploader({ onClose, onSuccess, currentLocation }: I
               />
               {file ? (
                 <div className="flex flex-col items-center">
-                  <span className="material-symbols-outlined text-4xl text-teal-400 mb-2">check_circle</span>
-                  <span className="text-sm font-medium truncate w-full px-4">{file.name}</span>
+                  <span className="material-symbols-outlined text-3xl md:text-4xl text-teal-400 mb-2">check_circle</span>
+                  <span className="text-xs md:text-sm font-medium truncate w-full px-4">{file.name}</span>
                 </div>
               ) : (
                 <div className="flex flex-col items-center opacity-70">
-                  <span className="material-symbols-outlined text-4xl mb-2">add_photo_alternate</span>
-                  <span className="text-sm font-medium">Click to browse or take photo</span>
+                  <span className="material-symbols-outlined text-3xl md:text-4xl mb-2">add_photo_alternate</span>
+                  <span className="text-xs md:text-sm font-medium">Click to browse or take photo</span>
                 </div>
               )}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-2 opacity-70">
+            <label className="block text-[10px] md:text-xs font-bold uppercase tracking-wider mb-2 opacity-70">
               Description / Accessibility Features
             </label>
             <textarea 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="E.g., Wheelchair ramp available at the north entrance."
-              className={`w-full p-3 rounded-lg border focus:ring-2 focus:ring-teal-500 focus:outline-none transition-all resize-none h-24 ${
+              className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-teal-500 focus:outline-none transition-all resize-none h-20 md:h-24 text-sm md:text-base ${
                 theme === 'dark' 
                   ? 'bg-dark-teal/20 border-air-force-blue/20 placeholder-air-force-blue/50' 
                   : 'bg-white border-tea-green/50 placeholder-ink-black/30'
