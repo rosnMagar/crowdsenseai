@@ -24,24 +24,24 @@ interface MapScreenProps {
 }
 
 const DENSITY_COLORS: Record<DensityLevel, string> = {
-  0: 'rgba(212, 163, 115, 0.15)',
-  1: 'rgba(212, 163, 115, 0.4)',
-  2: 'rgba(212, 163, 115, 0.7)',
-  3: 'rgba(212, 163, 115, 1.0)'
+  0: 'rgba(34, 197, 94, 0.2)',
+  1: 'rgba(34, 197, 94, 0.5)',
+  2: 'rgba(234, 179, 8, 0.65)',
+  3: 'rgba(239, 68, 68, 0.8)'
 }
 
 const DENSITY_TEXT: Record<DensityLevel, string> = {
-  0: 'text-air-force-blue dark:text-air-force-blue/60',
-  1: 'text-air-force-blue dark:text-air-force-blue',
-  2: 'text-air-force-blue dark:text-air-force-blue',
-  3: 'text-air-force-blue dark:text-air-force-blue'
+  0: 'text-green-500 dark:text-green-400',
+  1: 'text-green-500 dark:text-green-400',
+  2: 'text-yellow-500 dark:text-yellow-400',
+  3: 'text-red-500 dark:text-red-400'
 }
 
 const DENSITY_LABELS: Record<DensityLevel, string> = {
-  0: 'Empty',
-  1: 'Low',
-  2: 'Medium',
-  3: 'High'
+  0: 'Low',
+  1: 'Moderate',
+  2: 'High',
+  3: 'Very High'
 }
 
 export default function MapScreen({ 
@@ -118,6 +118,9 @@ export default function MapScreen({
           <MapView 
             currentLocation={location}
             locationHistory={locationHistory}
+            heatmapQuadrants={displayQuadrants}
+            showHeatmap={showHeatmap}
+            heatmapOpacity={0.6}
           />
         </div>
 
@@ -177,7 +180,7 @@ export default function MapScreen({
               value={timeOffset}
               onChange={setTimeOffset}
               min={0}
-              max={60}
+              max={180}
               step={5}
             />
           </div>

@@ -128,9 +128,9 @@ function getHistoricalDensity(qId: string, hour: number, dayOfWeek: number = 1):
 
 function getBlendWeight(minutesAhead: number): { current: number; historical: number } {
   if (minutesAhead <= 0) return { current: 1.0, historical: 0.0 }
-  if (minutesAhead >= 60) return { current: 0.0, historical: 1.0 }
+  if (minutesAhead >= 180) return { current: 0.0, historical: 1.0 }
   
-  const t = minutesAhead / 60
+  const t = minutesAhead / 180
   
   const currentWeight = Math.max(0, 1 - Math.pow(t, 0.5))
   const historicalWeight = 1 - currentWeight
@@ -244,7 +244,7 @@ serve(async (req: Request) => {
       snapshotMap.set(s.quadrantId, userCountToDensity(s.userCount))
     }
 
-    for (let t = 0; t <= 60; t += 5) {
+    for (let t = 0; t <= 180; t += 5) {
       const futureTime = getPredictionTimeFeatures(baseHour, baseDayOfWeek, t)
       const blend = getBlendWeight(t)
       

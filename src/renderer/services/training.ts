@@ -269,7 +269,7 @@ export async function generatePredictions(
   
   const heatmaps: { timestamp: string; quadrants: Map<string, DensityLevel> }[] = []
   
-  for (let t = 0; t <= 60; t += 5) {
+  for (let t = 0; t <= 180; t += 5) {
     const predictedDensities = await predictDensity(t)
     heatmaps.push({
       timestamp: new Date(Date.now() + t * 60000).toISOString(),
