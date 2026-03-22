@@ -36,7 +36,6 @@ function AppContent() {
 
   const [showHeatmap, setShowHeatmap] = useState(false)
   const [timeOffset, setTimeOffset] = useState(0)
-  const hasInitializedRef = useRef(false)
 
   useEffect(() => {
     if (location) {
@@ -47,13 +46,6 @@ function AppContent() {
       }
     }
   }, [location])
-
-  useEffect(() => {
-    if (showHeatmap && !hasInitializedRef.current) {
-      hasInitializedRef.current = true
-      updatePredictions()
-    }
-  }, [showHeatmap, updatePredictions])
 
   const startNewSession = useCallback(async (metadata?: SessionMetadata) => {
     const session = await createSession(metadata)

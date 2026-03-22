@@ -121,6 +121,17 @@ export function useAIPredictions(): UseAIPredictionsReturn {
   }, [updatePredictions])
 
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        updatePredictions()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [updatePredictions])
+
+  useEffect(() => {
     const updateCountdown = () => {
       const now = new Date()
       const midnight = new Date()
