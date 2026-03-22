@@ -9,6 +9,7 @@ import SettingsScreen from './pages/SettingsScreen'
 import { useLocation } from './hooks/useLocation'
 import { useAIPredictions } from './hooks/useAIPredictions'
 import { HeatmapProvider } from './contexts/HeatmapContext'
+import { WifiProvider } from './contexts/WifiContext'
 import type { LocationDataWifi } from './hooks/useWifi'
 import type { Session, SessionMetadata } from './types'
 import { createSession, addLocationToSession } from './services/supabase'
@@ -150,7 +151,9 @@ function AppContent() {
 function App() {
   return (
     <HeatmapProvider>
-      <AppContent />
+      <WifiProvider>
+        <AppContent />
+      </WifiProvider>
     </HeatmapProvider>
   )
 }

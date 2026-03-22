@@ -28,8 +28,12 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
     setError(null)
 
     try {
-      const results = await window.electronAPI.wifi.scan()
-      const mapped = results.map(r => ({
+      const [scanResults, connectedResults] = await Promise.all([
+        window.electronAPI.wifi.scan(),
+        window.electronAPI.wifi.getCurrentConnections()
+      ])
+      
+      const mapped = scanResults.map(r => ({
         ssid: r.ssid || 'Hidden Network',
         bssid: r.bssid || '',
         signal: typeof r.signal === 'number' && !isNaN(r.signal) ? r.signal : -100,
@@ -41,11 +45,17 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
       setNetworks(mapped)
       setLastScanTime(new Date())
       
-      if (mapped.length > 0) {
-        const strongest = mapped.reduce((prev, curr) => 
-          (curr.signal > prev.signal) ? curr : prev
-        )
-        setConnection(strongest)
+      if (connectedResults.length > 0) {
+        const connected = connectedResults.map(r => ({
+          ssid: r.ssid || 'Unknown Network',
+          bssid: r.bssid || '',
+          signal: typeof r.signal === 'number' && !isNaN(r.signal) ? r.signal : -100,
+          channel: typeof r.channel === 'number' ? r.channel : 0,
+          frequency: typeof r.frequency === 'number' ? r.frequency : 2400,
+          quality: typeof r.quality === 'number' ? r.quality : 0,
+          security: r.security || 'unknown'
+        }))
+        setConnection(connected[0])
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Scan failed')

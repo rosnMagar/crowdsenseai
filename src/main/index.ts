@@ -140,6 +140,8 @@ ipcMain.handle('wifi:scan', async (): Promise<WifiScanResult[]> => {
 ipcMain.handle('wifi:getCurrentConnections', async (): Promise<WifiScanResult[]> => {
   try {
     const connections: WifiNetwork[] = await wifi.getCurrentConnections()
+    log.info(`getCurrentConnections returned ${connections.length} networks`)
+    
     return connections.map(conn => {
       let signal = typeof conn.signal_level === 'number' && !isNaN(conn.signal_level) ? conn.signal_level : -100
       let ssid = conn.ssid || ''
@@ -149,9 +151,7 @@ ipcMain.handle('wifi:getCurrentConnections', async (): Promise<WifiScanResult[]>
       let quality = typeof conn.quality === 'number' && !isNaN(conn.quality) ? conn.quality : 0
       let security = conn.security || 'unknown'
 
-      if (ssid === 'connected' || bssid === 'connected' || !ssid) {
-        ssid = 'Connected Network'
-      }
+      log.info(`Network: ssid="${ssid}", bssid="${bssid}", signal=${signal}`)
 
       if (channel === 0 && typeof conn.channel === 'number') {
         if (conn.channel === 802) {
@@ -168,7 +168,7 @@ ipcMain.handle('wifi:getCurrentConnections', async (): Promise<WifiScanResult[]>
 
       return {
         bssid,
-        ssid,
+        ssid: ssid || 'Unknown Network',
         signal,
         channel,
         frequency,

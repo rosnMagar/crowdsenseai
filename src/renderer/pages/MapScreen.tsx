@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import TimeSlider from "../components/TimeSlider";
 import { useTheme } from "../contexts/ThemeContext";
 import { useHeatmap } from "../contexts/HeatmapContext";
+import { useWifiSignal } from "../contexts/WifiContext";
 import { LocationData, QuadrantDensity, DensityLevel } from "../types";
 import { quadrantToLatLon } from "../services/grid";
 
@@ -69,6 +70,7 @@ export default function MapScreen({
 }: MapScreenProps) {
   const { theme } = useTheme();
   const { setCurrentSource, currentSourceId } = useHeatmap();
+  const { currentSignal } = useWifiSignal();
   const [currentMode, setCurrentMode] = useState<MapMode>("activity");
 
   const handleModeChange = useCallback(
@@ -299,10 +301,10 @@ export default function MapScreen({
                 </p>
                 <div className="flex items-end gap-1">
                   <span className="text-xl font-bold text-bronze dark:text-ash-grey">
-                    {location?.accuracy ? Math.round(location.accuracy) : "--"}
+                    {currentSignal !== -100 ? currentSignal : "--"}
                   </span>
                   <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">
-                    m
+                    dBm
                   </span>
                 </div>
               </div>
