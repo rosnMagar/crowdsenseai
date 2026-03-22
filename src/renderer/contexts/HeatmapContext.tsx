@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
 import { HeatmapSource, HeatmapPoint, HeatmapLayerConfig, DEFAULT_LAYER_CONFIG, DENSITY_COLOR_SCHEME } from '../types/heatmap'
 import { useAIPredictions } from '../hooks/useAIPredictions'
+import { WifiObservation } from '../services/wifiTracker'
+import { getWifiHeatmapPoints } from '../services/heatmapSources'
 
 interface HeatmapContextValue {
   currentSourceId: string | null
@@ -12,6 +14,10 @@ interface HeatmapContextValue {
   layerConfig: HeatmapLayerConfig
   setLayerConfig: (config: Partial<HeatmapLayerConfig>) => void
   getCurrentSource: () => HeatmapSource | null
+  wifiObservations: WifiObservation[]
+  addWifiObservation: (obs: WifiObservation) => void
+  clearWifiObservations: () => void
+  wifiHeatmapData: HeatmapPoint[]
 }
 
 const HeatmapContext = createContext<HeatmapContextValue | null>(null)
@@ -32,6 +38,7 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
   const [sources, setSources] = useState<Map<string, HeatmapSource>>(new Map())
   const [currentSourceId, setCurrentSourceId] = useState<string | null>(null)
   const [layerConfig, setLayerConfigState] = useState<HeatmapLayerConfig>(DEFAULT_LAYER_CONFIG)
+  const [wifiObservations, setWifiObservations] = useState<WifiObservation[]>([])
   const { quadrants } = useAIPredictions()
 
   const registeredSources = useMemo(() => Array.from(sources.values()), [sources])
@@ -51,6 +58,13 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
       }))
   }, [quadrants])
 
+  const wifiHeatmapData = useMemo<HeatmapPoint[]>(() => {
+    if (currentSourceId === 'wifi-intensity' && wifiObservations.length > 0) {
+      return getWifiHeatmapPoints(wifiObservations)
+    }
+    return []
+  }, [currentSourceId, wifiObservations])
+
   const heatmapData = useMemo<HeatmapPoint[]>(() => {
     if (!currentSource) return densityHeatmapData
     
@@ -58,8 +72,12 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
       return densityHeatmapData
     }
     
+    if (currentSource.id === 'wifi-intensity') {
+      return wifiHeatmapData
+    }
+    
     return currentSource.getData()
-  }, [currentSource, densityHeatmapData])
+  }, [currentSource, densityHeatmapData, wifiHeatmapData])
 
   const registerSource = useCallback((source: HeatmapSource) => {
     setSources(prev => {
@@ -98,6 +116,20 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
 
   const getCurrentSource = useCallback(() => currentSource, [currentSource])
 
+  const addWifiObservation = useCallback((obs: WifiObservation) => {
+    setWifiObservations(prev => {
+      const updated = [...prev, obs]
+      if (updated.length > 100) {
+        return updated.slice(-100)
+      }
+      return updated
+    })
+  }, [])
+
+  const clearWifiObservations = useCallback(() => {
+    setWifiObservations([])
+  }, [])
+
   useEffect(() => {
     if (sources.size === 0) {
       const defaultDensitySource: HeatmapSource = {
@@ -109,7 +141,17 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
         getData: () => densityHeatmapData
       }
       
+      const wifiSource: HeatmapSource = {
+        id: 'wifi-intensity',
+        name: 'WiFi Signal',
+        description: 'WiFi signal strength from nearby networks',
+        colorScheme: DENSITY_COLOR_SCHEME,
+        icon: 'wifi',
+        getData: () => []
+      }
+      
       registerSource(defaultDensitySource)
+      registerSource(wifiSource)
     }
   }, [sources.size, registerSource, densityHeatmapData])
 
@@ -122,7 +164,11 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
     heatmapData,
     layerConfig,
     setLayerConfig,
-    getCurrentSource
+    getCurrentSource,
+    wifiObservations,
+    addWifiObservation,
+    clearWifiObservations,
+    wifiHeatmapData
   }
 
   return (
