@@ -16,6 +16,10 @@ const CLASSROOM_ROWS = [10, 12, 14, 16, 18]
 const DORM_COL = 11
 const DORM_ROWS = [14, 15, 16, 17, 18, 19, 20, 21, 22]
 const FOOD_QUADRANTS = ['Q_14_11', 'Q_20_11']
+const QUAD_ROWS = [19, 20, 21]
+const QUAD_COLS = [8, 9]
+const GATHERING_ROWS = [12, 13, 17, 20, 22]
+const GATHERING_COL = 7
 
 function isClassroom(qId: string): boolean {
   const match = qId.match(/Q_(\d+)_(\d+)/)
@@ -35,6 +39,22 @@ function isDorm(qId: string): boolean {
 
 function isFood(qId: string): boolean {
   return FOOD_QUADRANTS.includes(qId)
+}
+
+function isQuad(qId: string): boolean {
+  const match = qId.match(/Q_(\d+)_(\d+)/)
+  if (!match) return false
+  const row = parseInt(match[1])
+  const col = parseInt(match[2])
+  return QUAD_ROWS.includes(row) && QUAD_COLS.includes(col)
+}
+
+function isGathering(qId: string): boolean {
+  const match = qId.match(/Q_(\d+)_(\d+)/)
+  if (!match) return false
+  const row = parseInt(match[1])
+  const col = parseInt(match[2])
+  return GATHERING_ROWS.includes(row) && col === GATHERING_COL
 }
 
 interface QuadrantBounds {
@@ -110,6 +130,20 @@ const FOOD_PATTERN: Record<number, number> = {
   18: 0.60, 19: 0.75, 20: 0.65, 21: 0.40, 22: 0.25, 23: 0.15
 }
 
+const QUAD_PATTERN: Record<number, number> = {
+  0: 0.01, 1: 0.01, 2: 0.01, 3: 0.01, 4: 0.01, 5: 0.02,
+  6: 0.10, 7: 0.30, 8: 0.50, 9: 0.60, 10: 0.65, 11: 0.60,
+  12: 0.75, 13: 0.70, 14: 0.65, 15: 0.70, 16: 0.75, 17: 0.60,
+  18: 0.50, 19: 0.45, 20: 0.40, 21: 0.30, 22: 0.20, 23: 0.10
+}
+
+const GATHERING_PATTERN: Record<number, number> = {
+  0: 0.01, 1: 0.01, 2: 0.01, 3: 0.01, 4: 0.01, 5: 0.02,
+  6: 0.05, 7: 0.40, 8: 0.70, 9: 0.80, 10: 0.85, 11: 0.80,
+  12: 0.75, 13: 0.70, 14: 0.75, 15: 0.80, 16: 0.85, 17: 0.80,
+  18: 0.50, 19: 0.30, 20: 0.20, 21: 0.10, 22: 0.05, 23: 0.02
+}
+
 function getHistoricalDensity(qId: string, hour: number, dayOfWeek: number = 1): number {
   if (isDorm(qId)) {
     return DORM_PATTERN[hour]
@@ -121,6 +155,14 @@ function getHistoricalDensity(qId: string, hour: number, dayOfWeek: number = 1):
   
   if (isFood(qId)) {
     return FOOD_PATTERN[hour]
+  }
+  
+  if (isQuad(qId)) {
+    return QUAD_PATTERN[hour]
+  }
+  
+  if (isGathering(qId)) {
+    return GATHERING_PATTERN[hour]
   }
   
   return BASE_WEEKDAY[hour] * 0.2

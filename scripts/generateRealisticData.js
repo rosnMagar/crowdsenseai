@@ -23,6 +23,14 @@ const DORM_COL = 11
 // Food locations: Q_14_11 and Q_20_11
 const FOOD_QUADRANTS = ['Q_14_11', 'Q_20_11']
 
+// Quad locations: column 8-9, rows 19-21
+const QUAD_ROWS = [19, 20, 21]
+const QUAD_COLS = [8, 9]
+
+// Gathering spots: column 7, rows 12, 13, 17, 20, 22
+const GATHERING_ROWS = [12, 13, 17, 20, 22]
+const GATHERING_COL = 7
+
 function isClassroom(row, col) {
   return CLASSROOM_ROWS.includes(row) && col === CLASSROOM_COL
 }
@@ -34,6 +42,14 @@ function isDorm(row, col) {
 function isFood(row, col) {
   const qId = `Q_${row}_${col}`
   return FOOD_QUADRANTS.includes(qId)
+}
+
+function isQuad(row, col) {
+  return QUAD_ROWS.includes(row) && QUAD_COLS.includes(col)
+}
+
+function isGathering(row, col) {
+  return GATHERING_ROWS.includes(row) && col === GATHERING_COL
 }
 
 function randomInRange(min, max) {
@@ -89,6 +105,22 @@ const FOOD_PATTERN = [
   0.60, 0.75, 0.65, 0.40, 0.25, 0.15    // 18-23: Dinner peak 7-8pm
 ]
 
+// Quad patterns: Activity throughout the day, peaks during class breaks and lunch
+const QUAD_PATTERN = [
+  0.01, 0.01, 0.01, 0.01, 0.01, 0.02,   // 0-5: Near empty
+  0.10, 0.30, 0.50, 0.60, 0.65, 0.60,   // 6-11: Morning classes, breaks
+  0.75, 0.70, 0.65, 0.70, 0.75, 0.60,   // 12-17: Lunch peak, afternoon
+  0.50, 0.45, 0.40, 0.30, 0.20, 0.10    // 18-23: Evening decline
+]
+
+// Gathering spots: High activity 7am-4pm (typical campus activity hours)
+const GATHERING_PATTERN = [
+  0.01, 0.01, 0.01, 0.01, 0.01, 0.02,   // 0-5: Near empty
+  0.05, 0.40, 0.70, 0.80, 0.85, 0.80,   // 6-11: Morning buildup, peak 9-11
+  0.75, 0.70, 0.75, 0.80, 0.85, 0.80,   // 12-17: Lunch, afternoon (7am-4pm window)
+  0.50, 0.30, 0.20, 0.10, 0.05, 0.02    // 18-23: Evening drop off
+]
+
 function getDensity(row, col, hour, dayOfWeek) {
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
   const base = isWeekend ? BASE_WEEKEND[hour] : BASE_WEEKDAY[hour]
@@ -106,6 +138,16 @@ function getDensity(row, col, hour, dayOfWeek) {
   // Food/dining
   if (isFood(row, col)) {
     return FOOD_PATTERN[hour]
+  }
+  
+  // Quad (outdoor gathering area)
+  if (isQuad(row, col)) {
+    return QUAD_PATTERN[hour]
+  }
+  
+  // Gathering spots (high activity during day)
+  if (isGathering(row, col)) {
+    return GATHERING_PATTERN[hour]
   }
   
   // Default: base campus density (low for non-specified areas)
@@ -134,7 +176,9 @@ async function generateData() {
   console.log('Building locations (50m grid - higher resolution):')
   console.log('  Classrooms: Q_10_3, Q_12_3, Q_14_3, Q_16_3, Q_18_3 (column 3)')
   console.log('  Dorms: Q_14_11 through Q_22_11 (column 11)')
-  console.log('  Food: Q_14_11, Q_20_11\n')
+  console.log('  Food: Q_14_11, Q_20_11')
+  console.log('  Quad: Q_19_8, Q_19_9, Q_20_8, Q_20_9, Q_21_8, Q_21_9')
+  console.log('  Gathering spots: Q_12_7, Q_13_7, Q_17_7, Q_20_7, Q_22_7\n')
   
   await clearOldSampleData()
   
