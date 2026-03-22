@@ -43,7 +43,10 @@ npm run dist  # Create distributable
 ## Project Structure
 
 ```
-src/
+├── docs/           # Technical documentation
+│   ├── components.md
+│   ├── services.md
+│   └── prediction-system.md
 ├── main/           # Electron main process
 │   └── index.ts
 ├── preload/        # Preload scripts for IPC
