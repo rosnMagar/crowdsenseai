@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { PolygonLayer } from '@deck.gl/layers'
 import type { DensityLevel, QuadrantDensity, QuadrantBounds } from '../types'
 import { GRID_CONFIG } from '../services/grid'
+import { useTheme } from '../contexts/ThemeContext'
 
 interface HeatmapOverlayProps {
   quadrants: QuadrantDensity[]
@@ -9,17 +10,17 @@ interface HeatmapOverlayProps {
 }
 
 const DENSITY_COLORS: Record<DensityLevel, [number, number, number]> = {
-  0: [50, 50, 50],
-  1: [56, 189, 248],
-  2: [251, 191, 36],
-  3: [239, 68, 68]
+  0: [212, 163, 115],
+  1: [212, 163, 115],
+  2: [212, 163, 115],
+  3: [212, 163, 115]
 }
 
 const DENSITY_ALPHA: Record<DensityLevel, number> = {
-  0: 30,
-  1: 120,
-  2: 160,
-  3: 200
+  0: 15,
+  1: 60,
+  2: 130,
+  3: 220
 }
 
 export function createHeatmapLayer(
@@ -55,16 +56,22 @@ export function createHeatmapLayer(
 }
 
 export function HeatmapLegend() {
+  const { theme } = useTheme()
+
   const levels: { level: DensityLevel; label: string; color: string }[] = [
-    { level: 0, label: 'None', color: `rgb(${DENSITY_COLORS[0].join(',')})` },
-    { level: 1, label: 'Few', color: `rgb(${DENSITY_COLORS[1].join(',')})` },
-    { level: 2, label: 'Some', color: `rgb(${DENSITY_COLORS[2].join(',')})` },
-    { level: 3, label: 'Many', color: `rgb(${DENSITY_COLORS[3].join(',')})` }
+    { level: 0, label: 'None', color: `rgba(${DENSITY_COLORS[0].join(',')}, ${DENSITY_ALPHA[0] / 255})` },
+    { level: 1, label: 'Few', color: `rgba(${DENSITY_COLORS[1].join(',')}, ${DENSITY_ALPHA[1] / 255})` },
+    { level: 2, label: 'Some', color: `rgba(${DENSITY_COLORS[2].join(',')}, ${DENSITY_ALPHA[2] / 255})` },
+    { level: 3, label: 'Many', color: `rgba(${DENSITY_COLORS[3].join(',')}, ${DENSITY_ALPHA[3] / 255})` }
   ]
 
+  const containerClass = theme === 'dark' ? 'bg-dark-teal/50' : 'bg-papaya-whip/90'
+  const headerClass = theme === 'dark' ? 'text-air-force-blue' : 'text-dark-teal'
+  const labelClass = theme === 'dark' ? 'text-light-beige' : 'text-ink-black/80'
+
   return (
-    <div className="absolute bottom-4 left-4 bg-slate-800/90 rounded-lg p-3 backdrop-blur-sm">
-      <div className="text-xs text-slate-400 mb-2 font-medium">Population Density</div>
+    <div className={`absolute bottom-4 left-4 ${containerClass} rounded-lg p-3 backdrop-blur-sm`}>
+      <div className={`text-xs ${headerClass} mb-2 font-medium`}>Population Density</div>
       <div className="space-y-1.5">
         {levels.map(({ level, label, color }) => (
           <div key={level} className="flex items-center gap-2">
@@ -72,7 +79,7 @@ export function HeatmapLegend() {
               className="w-4 h-4 rounded"
               style={{ backgroundColor: color }}
             />
-            <span className="text-xs text-slate-300">{label}</span>
+            <span className={`text-xs ${labelClass}`}>{label}</span>
           </div>
         ))}
       </div>

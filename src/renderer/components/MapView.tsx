@@ -68,10 +68,10 @@ export default function MapView({
           intensity: 1,
           threshold: 0.03,
           colorRange: [
-            [50, 50, 50],
-            [56, 189, 248],
-            [251, 191, 36],
-            [239, 68, 68]
+            [212, 163, 115, 15],
+            [212, 163, 115, 60],
+            [212, 163, 115, 130],
+            [212, 163, 115, 220]
           ],
           opacity: heatmapOpacity
         })

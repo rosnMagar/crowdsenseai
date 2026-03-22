@@ -26,10 +26,17 @@ interface MapScreenProps {
 }
 
 const DENSITY_COLORS: Record<DensityLevel, string> = {
-  0: 'text-slate-500',
-  1: 'text-sky-400',
-  2: 'text-amber-400',
-  3: 'text-red-500'
+  0: 'rgba(212, 163, 115, 0.15)',
+  1: 'rgba(212, 163, 115, 0.4)',
+  2: 'rgba(212, 163, 115, 0.7)',
+  3: 'rgba(212, 163, 115, 1.0)'
+}
+
+const DENSITY_TEXT: Record<DensityLevel, string> = {
+  0: 'text-air-force-blue dark:text-air-force-blue/60',
+  1: 'text-air-force-blue dark:text-air-force-blue',
+  2: 'text-air-force-blue dark:text-air-force-blue',
+  3: 'text-air-force-blue dark:text-air-force-blue'
 }
 
 const DENSITY_LABELS: Record<DensityLevel, string> = {
@@ -114,9 +121,10 @@ export default function MapScreen({
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
-      <Header title="Network Cartographer" onNavigate={onNavigate} />
+      <Header title="Map" onNavigate={onNavigate} />
       
       <main className="flex-1 relative overflow-hidden">
+
         <div className="absolute inset-0 z-0">
           <MapView 
             currentLocation={location}
@@ -149,14 +157,13 @@ export default function MapScreen({
                 {([0, 1, 2, 3] as DensityLevel[]).map(level => (
                   <div key={level} className="flex items-center gap-2 text-xs">
                     <div 
-                      className={`w-3 h-3 rounded ${DENSITY_COLORS[level]}`}
+                      className="w-3 h-3 rounded"
                       style={{ 
-                        backgroundColor: level === 0 ? '#666' : level === 1 ? '#38bdf8' : level === 2 ? '#fbbf24' : '#ef4444',
-                        opacity: level === 0 ? 0.3 : 0.8
+                        backgroundColor: DENSITY_COLORS[level]
                       }}
                     />
-                    <span className="text-slate-400">{DENSITY_LABELS[level]}</span>
-                    <span className="text-slate-500 ml-auto">
+                    <span className={DENSITY_TEXT[level]}>{DENSITY_LABELS[level]}</span>
+                    <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
                       {densityCounts[level]} cells
                     </span>
                   </div>
@@ -164,13 +171,13 @@ export default function MapScreen({
               </div>
 
               {confidence > 0 && (
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-air-force-blue/60 dark:text-air-force-blue/60">
                   Confidence: <span className="text-tea-green">{Math.round(confidence * 100)}%</span>
                 </div>
               )}
 
               {lastUpdated && (
-                <div className="text-xs text-slate-500 mt-1">
+                <div className="text-xs text-air-force-blue/50 dark:text-air-force-blue/40 mt-1">
                   Updated: {lastUpdated.toLocaleTimeString()}
                 </div>
               )}
@@ -196,7 +203,7 @@ export default function MapScreen({
           </div>
         )}
 
-        <div className="absolute bottom-32 left-4 right-4 z-10 md:w-80 md:left-6 md:bottom-24">
+        <div className="absolute bottom-32 left-4 right-4 z-10 w-72 mx-auto md:w-80 md:left-6 md:bottom-24">
           <div className={`backdrop-blur-2xl border p-3 shadow-2xl ${
             theme === 'dark'
               ? 'bg-ink-black/90 border-air-force-blue/10'
@@ -269,7 +276,7 @@ export default function MapScreen({
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                   showHeatmap
                     ? 'bg-tea-green/30 text-tea-green border border-tea-green/50'
-                    : 'bg-slate-500/20 text-slate-400 border border-slate-500/50'
+                    : 'bg-dark-teal/20 text-air-force-blue border border-dark-teal/30'
                 }`}
               >
                 {showHeatmap ? 'Heatmap On' : 'Heatmap Off'}
