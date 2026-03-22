@@ -2,6 +2,8 @@ import { resolve } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 
+const resetConsent = process.argv.includes('--reset-consent')
+
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
@@ -25,6 +27,9 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
+    define: {
+      __RESET_CONSENT__: JSON.stringify(resetConsent)
+    },
     build: {
       rollupOptions: {
         input: {

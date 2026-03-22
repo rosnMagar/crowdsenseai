@@ -6,16 +6,18 @@ import MapScreen from './pages/MapScreen'
 import InsightsScreen from './pages/InsightsScreen'
 import HistoryScreen from './pages/HistoryScreen'
 import SettingsScreen from './pages/SettingsScreen'
-import { useLocation } from './hooks/useLocation'
+
+import { useTrackingContext } from './contexts/TrackingContext'
 import { useAIPredictions } from './hooks/useAIPredictions'
-import { HeatmapProvider } from './contexts/HeatmapContext'
+import { useLocationConsent } from './contexts/LocationContext'
 import type { LocationData, Session, SessionMetadata } from './types'
 import { createSession, addLocationToSession } from './services/supabase'
 
 type Page = 'map' | 'insights' | 'history' | 'settings'
 
-function AppContent() {
-  const { location, isTracking, startTracking, stopTracking, refreshLocation, error } = useLocation()
+function App() {
+  const { location, isTracking, startTracking, stopTracking, refreshLocation, error } = useTrackingContext()
+  const { locationSharing } = useLocationConsent()
   const [currentPage, setCurrentPage] = useState<Page>('map')
   const [locationHistory, setLocationHistory] = useState<LocationData[]>([])
   const [currentSession, setCurrentSession] = useState<Session | null>(null)
@@ -63,6 +65,8 @@ function AppContent() {
   const handleToggleTracking = useCallback(async () => {
     if (isTracking) {
       stopTracking()
+    } else if (locationSharing === false) {
+      return
     } else {
       if (!currentSession) {
         const metadata: SessionMetadata = {
@@ -74,7 +78,7 @@ function AppContent() {
       }
       startTracking()
     }
-  }, [isTracking, currentSession, startNewSession, startTracking, stopTracking])
+  }, [isTracking, locationSharing, currentSession, startNewSession, startTracking, stopTracking])
 
   const handleNavigate = useCallback((page: Page) => {
     setCurrentPage(page)
@@ -137,14 +141,6 @@ function AppContent() {
       </div>
       <BottomNav currentPage={currentPage} onNavigate={handleNavigate} />
     </div>
-  )
-}
-
-function App() {
-  return (
-    <HeatmapProvider>
-      <AppContent />
-    </HeatmapProvider>
   )
 }
 

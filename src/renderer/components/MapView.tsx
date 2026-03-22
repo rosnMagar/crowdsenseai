@@ -3,14 +3,18 @@ import DeckGL from '@deck.gl/react'
 import { ScatterplotLayer, PathLayer } from '@deck.gl/layers'
 import { HeatmapLayer } from '@deck.gl/aggregation-layers'
 import { Map } from 'react-map-gl/maplibre'
-import { LocationData } from '../types'
+import { LocationData, QuadrantDensity } from '../types'
 import { useTheme } from '../contexts/ThemeContext'
-import { useHeatmap } from '../contexts/HeatmapContext'
 import 'maplibre-gl/dist/maplibre-gl.css'
+
+type HeatmapPoint = [longitude: number, latitude: number, weight: number]
 
 interface MapViewProps {
   currentLocation: LocationData | null
   locationHistory: LocationData[]
+  heatmapQuadrants?: QuadrantDensity[]
+  showHeatmap?: boolean
+  heatmapOpacity?: number
 }
 
 const INITIAL_VIEW_STATE = {
@@ -23,19 +27,13 @@ const INITIAL_VIEW_STATE = {
 
 export default function MapView({ 
   currentLocation, 
-  locationHistory
+  locationHistory,
+  heatmapQuadrants = [],
+  showHeatmap = false,
+  heatmapOpacity = 0.6
 }: MapViewProps) {
   const { theme } = useTheme()
-  const { heatmapData, layerConfig, getCurrentSource } = useHeatmap()
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
-
-  const currentSource = getCurrentSource()
-  const colorScheme = currentSource?.colorScheme || [
-    [50, 50, 50],
-    [56, 189, 248],
-    [251, 191, 36],
-    [239, 68, 68]
-  ]
 
   const pathColor = theme === 'dark' 
     ? [174, 195, 176, 180] as [number, number, number, number]
@@ -49,12 +47,18 @@ export default function MapView({
     ? [88, 131, 146, 180] as [number, number, number, number]
     : [125, 180, 160, 180] as [number, number, number, number]
 
+  const heatmapData = useMemo<HeatmapPoint[]>(() => {
+    return heatmapQuadrants
+      .filter(d => d.density > 0)
+      .map(d => [d.bounds.centerLon, d.bounds.centerLat, d.density] as HeatmapPoint)
+  }, [heatmapQuadrants])
+
   const layers = useMemo(() => {
     const layerList = []
 
-    if (heatmapData.length > 0) {
+    if (showHeatmap && heatmapData.length > 0) {
       layerList.push(
-        new HeatmapLayer({
+        new HeatmapLayer<HeatmapPoint>({
           id: 'heatmap-layer',
           data: heatmapData,
           pickable: false,
@@ -124,7 +128,7 @@ export default function MapView({
     }
 
     return layerList
-  }, [currentLocation, locationHistory, heatmapData, layerConfig, colorScheme, theme, pathColor, currentColor, historyColor])
+  }, [currentLocation, locationHistory, heatmapData, showHeatmap, heatmapOpacity, theme])
 
   useMemo(() => {
     if (currentLocation && locationHistory.length === 1) {
