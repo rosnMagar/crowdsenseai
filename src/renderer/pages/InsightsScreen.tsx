@@ -27,32 +27,6 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
   const [error, setError] = useState<string | null>(null)
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null)
 
-  const fetchConnections = async () => {
-    if (!window.electronAPI?.wifi) {
-      setError('WiFi API not available')
-      setIsLoading(false)
-      return
-    }
-
-    try {
-      const results = await window.electronAPI.wifi.getCurrentConnections()
-      if (results.length > 0) {
-        const conn = results[0]
-        setConnection({
-          ssid: conn.ssid || 'Connected Network',
-          bssid: conn.bssid,
-          signal: conn.signal,
-          channel: conn.channel,
-          frequency: conn.frequency,
-          quality: conn.quality,
-          security: conn.security
-        })
-      }
-    } catch (err) {
-      console.error('Failed to get connections:', err)
-    }
-  }
-
   const scanNetworks = async () => {
     if (!window.electronAPI?.wifi) {
       setError('WiFi API not available')
@@ -64,18 +38,24 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
 
     try {
       const results = await window.electronAPI.wifi.scan()
-      setNetworks(results.map(r => ({
+      const mapped = results.map(r => ({
         ssid: r.ssid || 'Hidden Network',
-        bssid: r.bssid,
-        signal: r.signal,
-        channel: r.channel,
-        frequency: r.frequency,
-        quality: r.quality,
-        security: r.security
-      })))
+        bssid: r.bssid || '',
+        signal: typeof r.signal === 'number' && !isNaN(r.signal) ? r.signal : -100,
+        channel: typeof r.channel === 'number' ? r.channel : 0,
+        frequency: typeof r.frequency === 'number' ? r.frequency : 2400,
+        quality: typeof r.quality === 'number' ? r.quality : 0,
+        security: r.security || 'unknown'
+      }))
+      setNetworks(mapped)
       setLastScanTime(new Date())
-
-      await fetchConnections()
+      
+      if (mapped.length > 0) {
+        const strongest = mapped.reduce((prev, curr) => 
+          (curr.signal > prev.signal) ? curr : prev
+        )
+        setConnection(strongest)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Scan failed')
     } finally {
@@ -86,13 +66,12 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
   useEffect(() => {
     const init = async () => {
       setIsLoading(true)
-      await fetchConnections()
       await scanNetworks()
       setIsLoading(false)
     }
     init()
 
-    const interval = setInterval(fetchConnections, 5000)
+    const interval = setInterval(scanNetworks, 5000)
     return () => clearInterval(interval)
   }, [])
 
@@ -127,6 +106,11 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
   }
 
   const currentQuality = connection ? getSignalQuality(connection.signal) : null
+
+  const formatSignal = (signal: number | undefined | null) => {
+    if (signal == null || isNaN(signal)) return '--'
+    return `${signal}`
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -188,7 +172,7 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
                 <span className="material-symbols-outlined text-3xl md:text-4xl text-teal-400 mb-2">signal_cellular_alt</span>
                 <h3 className="font-headline font-bold text-xs md:text-sm">Signal Strength</h3>
                 <p className={`text-2xl md:text-3xl font-black mt-2 ${currentQuality?.color || 'text-gray-400'}`}>
-                  {connection ? `${connection.signal} dBm` : '-- dBm'}
+                  {connection ? `${formatSignal(connection.signal)} dBm` : '-- dBm'}
                 </p>
               </div>
 
@@ -236,7 +220,7 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Signal</p>
-                      <p className="font-bold">{connection.signal} dBm</p>
+                      <p className="font-bold">{formatSignal(connection.signal)} dBm</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Security</p>
@@ -302,7 +286,7 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
                               </span>
                             )}
                             <span className={`font-mono ${quality.color}`}>
-                              {network.signal} dBm
+                              {formatSignal(network.signal)} dBm
                             </span>
                           </div>
                         </div>

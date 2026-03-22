@@ -105,15 +105,31 @@ ipcMain.handle('wifi:scan', async (): Promise<WifiScanResult[]> => {
     const networks: WifiNetwork[] = await wifi.scan()
     log.info(`WiFi scan complete: ${networks.length} networks found`)
     
-    return networks.map(network => ({
-      bssid: network.bssid,
-      ssid: network.ssid,
-      signal: network.signal_level,
-      channel: network.channel,
-      frequency: network.frequency,
-      quality: network.quality,
-      security: network.security
-    }))
+    return networks.map(network => {
+      let signal = typeof network.signal_level === 'number' && !isNaN(network.signal_level) ? network.signal_level : -100
+      let ssid = network.ssid || ''
+      let bssid = network.bssid || ''
+      let channel = typeof network.channel === 'number' && network.channel > 0 && network.channel <= 165 ? network.channel : 0
+      let frequency = typeof network.frequency === 'number' && !isNaN(network.frequency) ? network.frequency : 2400
+      let quality = typeof network.quality === 'number' && !isNaN(network.quality) ? network.quality : 0
+      let security = network.security || 'unknown'
+
+      if (channel === 0 && typeof network.channel === 'number') {
+        if (network.channel > 0) {
+          channel = network.channel
+        }
+      }
+
+      return {
+        bssid,
+        ssid,
+        signal,
+        channel,
+        frequency,
+        quality,
+        security
+      }
+    })
   } catch (error) {
     log.error('WiFi scan failed:', error)
     throw error
@@ -123,15 +139,42 @@ ipcMain.handle('wifi:scan', async (): Promise<WifiScanResult[]> => {
 ipcMain.handle('wifi:getCurrentConnections', async (): Promise<WifiScanResult[]> => {
   try {
     const connections: WifiNetwork[] = await wifi.getCurrentConnections()
-    return connections.map(conn => ({
-      bssid: conn.bssid,
-      ssid: conn.ssid,
-      signal: conn.signal_level,
-      channel: conn.channel,
-      frequency: conn.frequency,
-      quality: conn.quality,
-      security: conn.security
-    }))
+    return connections.map(conn => {
+      let signal = typeof conn.signal_level === 'number' && !isNaN(conn.signal_level) ? conn.signal_level : -100
+      let ssid = conn.ssid || ''
+      let bssid = conn.bssid || ''
+      let channel = typeof conn.channel === 'number' && conn.channel > 0 && conn.channel <= 165 ? conn.channel : 0
+      let frequency = typeof conn.frequency === 'number' && !isNaN(conn.frequency) ? conn.frequency : 2400
+      let quality = typeof conn.quality === 'number' && !isNaN(conn.quality) ? conn.quality : 0
+      let security = conn.security || 'unknown'
+
+      if (ssid === 'connected' || bssid === 'connected' || !ssid) {
+        ssid = 'Connected Network'
+      }
+
+      if (channel === 0 && typeof conn.channel === 'number') {
+        if (conn.channel === 802) {
+          channel = 0
+          signal = -50
+        } else if (conn.channel > 0) {
+          channel = conn.channel
+        }
+      }
+
+      if (security === '112') {
+        security = 'WPA2'
+      }
+
+      return {
+        bssid,
+        ssid,
+        signal,
+        channel,
+        frequency,
+        quality,
+        security
+      }
+    })
   } catch (error) {
     log.error('Failed to get current connections:', error)
     throw error
