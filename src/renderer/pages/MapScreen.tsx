@@ -1,59 +1,59 @@
-import { useCallback, useMemo, useState } from 'react'
-import MapView from '../components/MapView'
-import Header from '../components/Header'
-import TimeSlider from '../components/TimeSlider'
-import { useTheme } from '../contexts/ThemeContext'
-import { useHeatmap } from '../contexts/HeatmapContext'
-import { LocationData, QuadrantDensity, DensityLevel } from '../types'
-import { quadrantToLatLon } from '../services/grid'
+import { useCallback, useMemo, useState } from "react";
+import MapView from "../components/MapView";
+import Header from "../components/Header";
+import TimeSlider from "../components/TimeSlider";
+import { useTheme } from "../contexts/ThemeContext";
+import { useHeatmap } from "../contexts/HeatmapContext";
+import { LocationData, QuadrantDensity, DensityLevel } from "../types";
+import { quadrantToLatLon } from "../services/grid";
 
-type MapMode = 'off' | 'activity' | 'wifi'
+type MapMode = "off" | "activity" | "wifi";
 
 interface MapScreenProps {
-  location: LocationData | null
-  locationHistory: LocationData[]
-  isTracking: boolean
-  onToggleTracking: () => void
-  onNavigate?: (page: 'map' | 'insights' | 'history' | 'settings') => void
-  quadrants?: QuadrantDensity[]
-  showHeatmap?: boolean
-  setShowHeatmap?: (show: boolean) => void
-  timeOffset?: number
-  setTimeOffset?: (offset: number) => void
-  getHeatmapAt?: (offset: number) => Map<string, DensityLevel>
-  isAILoading?: boolean
-  confidence?: number
-  trainingCountdown?: number
-  lastUpdated?: Date | null
-  realTimeUsers?: Map<string, number>
+  location: LocationData | null;
+  locationHistory: LocationData[];
+  isTracking: boolean;
+  onToggleTracking: () => void;
+  onNavigate?: (page: "map" | "insights" | "history" | "settings") => void;
+  quadrants?: QuadrantDensity[];
+  showHeatmap?: boolean;
+  setShowHeatmap?: (show: boolean) => void;
+  timeOffset?: number;
+  setTimeOffset?: (offset: number) => void;
+  getHeatmapAt?: (offset: number) => Map<string, DensityLevel>;
+  isAILoading?: boolean;
+  confidence?: number;
+  trainingCountdown?: number;
+  lastUpdated?: Date | null;
+  realTimeUsers?: Map<string, number>;
 }
 
 const DENSITY_COLORS: Record<DensityLevel, string> = {
-  0: 'rgba(34, 197, 94, 0.2)',
-  1: 'rgba(34, 197, 94, 0.5)',
-  2: 'rgba(234, 179, 8, 0.65)',
-  3: 'rgba(239, 68, 68, 0.8)'
-}
+  0: "rgba(34, 197, 94, 0.2)",
+  1: "rgba(34, 197, 94, 0.5)",
+  2: "rgba(234, 179, 8, 0.65)",
+  3: "rgba(239, 68, 68, 0.8)",
+};
 
 const DENSITY_TEXT: Record<DensityLevel, string> = {
-  0: 'text-green-500 dark:text-green-400',
-  1: 'text-green-500 dark:text-green-400',
-  2: 'text-yellow-500 dark:text-yellow-400',
-  3: 'text-red-500 dark:text-red-400'
-}
+  0: "text-green-500 dark:text-green-400",
+  1: "text-green-500 dark:text-green-400",
+  2: "text-yellow-500 dark:text-yellow-400",
+  3: "text-red-500 dark:text-red-400",
+};
 
 const DENSITY_LABELS: Record<DensityLevel, string> = {
-  0: 'Low',
-  1: 'Moderate',
-  2: 'High',
-  3: 'Very High'
-}
+  0: "Low",
+  1: "Moderate",
+  2: "High",
+  3: "Very High",
+};
 
-export default function MapScreen({ 
-  location, 
-  locationHistory, 
-  isTracking, 
-  onToggleTracking, 
+export default function MapScreen({
+  location,
+  locationHistory,
+  isTracking,
+  onToggleTracking,
   onNavigate,
   quadrants = [],
   showHeatmap,
@@ -65,125 +65,133 @@ export default function MapScreen({
   confidence,
   trainingCountdown,
   lastUpdated,
-  realTimeUsers
+  realTimeUsers,
 }: MapScreenProps) {
-  const { theme } = useTheme()
-  const { setCurrentSource, currentSourceId } = useHeatmap()
-  const [currentMode, setCurrentMode] = useState<MapMode>('off')
+  const { theme } = useTheme();
+  const { setCurrentSource, currentSourceId } = useHeatmap();
+  const [currentMode, setCurrentMode] = useState<MapMode>("off");
 
-  const handleModeChange = useCallback((mode: MapMode) => {
-    setCurrentMode(mode)
-    if (mode === 'off') {
-      // HeatmapProvider handles this via showHeatmap
-    } else if (mode === 'activity') {
-      setCurrentSource('density')
-    } else if (mode === 'wifi') {
-      setCurrentSource('wifi-intensity')
-    }
-  }, [setCurrentSource])
+  const handleModeChange = useCallback(
+    (mode: MapMode) => {
+      setCurrentMode(mode);
+      if (mode === "off") {
+        // HeatmapProvider handles this via showHeatmap
+      } else if (mode === "activity") {
+        setCurrentSource("density");
+      } else if (mode === "wifi") {
+        setCurrentSource("wifi-intensity");
+      }
+    },
+    [setCurrentSource],
+  );
 
   const handleStartTracking = useCallback(() => {
-    onToggleTracking()
-  }, [onToggleTracking])
+    onToggleTracking();
+  }, [onToggleTracking]);
 
   const displayQuadrants = useMemo(() => {
-    if (!getHeatmapAt) return quadrants
-    
-    const densityMap = getHeatmapAt(timeOffset)
-    const qDensities: QuadrantDensity[] = []
-    
+    if (!getHeatmapAt) return quadrants;
+
+    const densityMap = getHeatmapAt(timeOffset);
+    const qDensities: QuadrantDensity[] = [];
+
     densityMap.forEach((density, quadrantId) => {
-      const bounds = quadrantToLatLon(quadrantId)
+      const bounds = quadrantToLatLon(quadrantId);
       if (bounds) {
         qDensities.push({
           quadrantId,
           density,
           bounds,
-          count: 0
-        })
+          count: 0,
+        });
       }
-    })
-    
-    return qDensities
-  }, [getHeatmapAt, timeOffset, quadrants])
+    });
+
+    return qDensities;
+  }, [getHeatmapAt, timeOffset, quadrants]);
 
   const densityCounts = useMemo(() => {
-    const counts: Record<DensityLevel, number> = { 0: 0, 1: 0, 2: 0, 3: 0 }
-    displayQuadrants.forEach(q => {
-      counts[q.density]++
-    })
-    return counts
-  }, [displayQuadrants])
+    const counts: Record<DensityLevel, number> = { 0: 0, 1: 0, 2: 0, 3: 0 };
+    displayQuadrants.forEach((q) => {
+      counts[q.density]++;
+    });
+    return counts;
+  }, [displayQuadrants]);
 
   const formatCountdown = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
     if (hours > 0) {
-      return `${hours}h ${mins}m`
+      return `${hours}h ${mins}m`;
     }
     if (mins > 0) {
-      return `${mins}m ${secs}s`
+      return `${mins}m ${secs}s`;
     }
-    return `${secs}s`
-  }
+    return `${secs}s`;
+  };
 
   const getModeButtonStyle = (mode: MapMode) => {
-    const isActive = currentMode === mode
-    if (mode === 'off') {
+    const isActive = currentMode === mode;
+    if (mode === "off") {
       return isActive
-        ? 'bg-gray-500/30 text-gray-300 border border-gray-500/50'
-        : 'bg-dark-teal/20 text-air-force-blue border border-dark-teal/30 hover:bg-dark-teal/30'
+        ? "bg-gray-500/30 text-gray-300 border border-gray-500/50"
+        : "bg-dark-teal/20 text-air-force-blue border border-dark-teal/30 hover:bg-dark-teal/30";
     }
     return isActive
-      ? 'bg-teal-500/30 text-tea-green border border-teal-500/50'
-      : 'bg-dark-teal/20 text-air-force-blue border border-dark-teal/30 hover:bg-dark-teal/30'
-  }
+      ? "bg-teal-500/30 text-tea-green border border-teal-500/50"
+      : "bg-dark-teal/20 text-air-force-blue border border-dark-teal/30 hover:bg-dark-teal/30";
+  };
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
       <Header title="Map" onNavigate={onNavigate} />
-      
-      <main className="flex-1 relative overflow-hidden">
 
+      <main className="flex-1 relative overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <MapView 
+          <MapView
             currentLocation={location}
             locationHistory={locationHistory}
             heatmapQuadrants={displayQuadrants}
-            showHeatmap={currentMode !== 'off'}
+            showHeatmap={currentMode !== "off"}
             heatmapOpacity={0.6}
           />
         </div>
 
-        {currentMode !== 'off' && currentMode === 'activity' && (
+        {currentMode !== "off" && currentMode === "activity" && (
           <div className="absolute top-4 left-4 z-20">
-            <div className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
-              theme === 'dark'
-                ? 'bg-ink-black/90 border-air-force-blue/10'
-                : 'bg-cornsilk/90 border-tea-green/10'
-            }`}>
+            <div
+              className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
+                theme === "dark"
+                  ? "bg-ink-black/90 border-air-force-blue/10"
+                  : "bg-cornsilk/90 border-tea-green/10"
+              }`}
+            >
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
                   Activity Map
                 </span>
                 {isAILoading ? (
-                  <span className="text-xs text-amber-400 animate-pulse">Loading...</span>
+                  <span className="text-xs text-amber-400 animate-pulse">
+                    Loading...
+                  </span>
                 ) : (
                   <span className="text-xs text-green-400">Live</span>
                 )}
               </div>
-              
+
               <div className="space-y-1 mb-3">
-                {([0, 1, 2, 3] as DensityLevel[]).map(level => (
+                {([0, 1, 2, 3] as DensityLevel[]).map((level) => (
                   <div key={level} className="flex items-center gap-2 text-xs">
-                    <div 
+                    <div
                       className="w-3 h-3 rounded"
-                      style={{ 
-                        backgroundColor: DENSITY_COLORS[level]
+                      style={{
+                        backgroundColor: DENSITY_COLORS[level],
                       }}
                     />
-                    <span className={DENSITY_TEXT[level]}>{DENSITY_LABELS[level]}</span>
+                    <span className={DENSITY_TEXT[level]}>
+                      {DENSITY_LABELS[level]}
+                    </span>
                     <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
                       {densityCounts[level]} cells
                     </span>
@@ -206,35 +214,43 @@ export default function MapScreen({
           </div>
         )}
 
-        {currentMode !== 'off' && currentMode === 'wifi' && (
+        {currentMode !== "off" && currentMode === "wifi" && (
           <div className="absolute top-4 left-4 z-20">
-            <div className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
-              theme === 'dark'
-                ? 'bg-ink-black/90 border-air-force-blue/10'
-                : 'bg-cornsilk/90 border-tea-green/10'
-            }`}>
+            <div
+              className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
+                theme === "dark"
+                  ? "bg-ink-black/90 border-air-force-blue/10"
+                  : "bg-cornsilk/90 border-tea-green/10"
+              }`}
+            >
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
                   WiFi Signal Map
                 </span>
                 <span className="text-xs text-teal-400">Live</span>
               </div>
-              
+
               <div className="space-y-1 mb-3">
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-3 h-3 rounded bg-green-500" />
                   <span className="text-green-400">Strong</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-30 to -50 dBm</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
+                    -30 to -50 dBm
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-3 h-3 rounded bg-yellow-500" />
                   <span className="text-yellow-400">Moderate</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-50 to -70 dBm</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
+                    -50 to -70 dBm
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-3 h-3 rounded bg-red-500" />
                   <span className="text-red-400">Weak</span>
-                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">Below -70 dBm</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">
+                    Below -70 dBm
+                  </span>
                 </div>
               </div>
 
@@ -245,7 +261,7 @@ export default function MapScreen({
           </div>
         )}
 
-        {currentMode === 'activity' && setTimeOffset && (
+        {currentMode === "activity" && setTimeOffset && (
           <div className="absolute top-4 right-4 z-20 w-64">
             <TimeSlider
               value={timeOffset}
@@ -258,57 +274,80 @@ export default function MapScreen({
         )}
 
         <div className="absolute bottom-32 left-4 right-4 z-10 w-72 mx-auto md:w-80 md:left-6 md:bottom-24">
-          <div className={`backdrop-blur-2xl border p-3 shadow-2xl ${
-            theme === 'dark'
-              ? 'bg-ink-black/90 border-air-force-blue/10'
-              : 'bg-cornsilk/90 border-tea-green/10'
-          }`}>
+          <div
+            className={`backdrop-blur-2xl border p-3 shadow-2xl ${
+              theme === "dark"
+                ? "bg-ink-black/90 border-air-force-blue/10"
+                : "bg-cornsilk/90 border-tea-green/10"
+            }`}
+          >
             <div className="flex justify-between items-start mb-2">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 text-air-force-blue dark:text-tea-green">Current Sector</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 text-air-force-blue dark:text-tea-green">
+                  Current Sector
+                </p>
                 <h2 className="text-lg font-headline font-bold tracking-tight">
-                  {location ? 'Your Location' : 'Waiting for GPS...'}
+                  {location ? "Your Location" : "Waiting for GPS..."}
                 </h2>
               </div>
               <div className="flex items-center gap-1 bg-dark-teal/20 px-2 py-1 rounded">
                 <span className="w-2 h-2 rounded-full bg-dark-teal"></span>
-                <span className="text-[10px] font-bold uppercase">{isTracking ? 'Active' : 'Paused'}</span>
+                <span className="text-[10px] font-bold uppercase">
+                  {isTracking ? "Active" : "Paused"}
+                </span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className={`p-2 ${theme === 'dark' ? 'bg-dark-teal/50' : 'bg-papaya-whip'}`}>
-                <p className="text-[10px] uppercase mb-1 text-air-force-blue dark:text-tea-green">Signal</p>
+              <div
+                className={`p-2 ${theme === "dark" ? "bg-dark-teal/50" : "bg-papaya-whip"}`}
+              >
+                <p className="text-[10px] uppercase mb-1 text-air-force-blue dark:text-tea-green">
+                  Signal
+                </p>
                 <div className="flex items-end gap-1">
                   <span className="text-xl font-bold text-bronze dark:text-ash-grey">
-                    {location?.accuracy ? Math.round(location.accuracy) : '--'}
+                    {location?.accuracy ? Math.round(location.accuracy) : "--"}
                   </span>
-                  <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">m</span>
+                  <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">
+                    m
+                  </span>
                 </div>
               </div>
-              <div className={`p-2 ${theme === 'dark' ? 'bg-dark-teal/50' : 'bg-papaya-whip'}`}>
-                <p className="text-[10px] uppercase mb-1 text-air-force-blue dark:text-tea-green">Points</p>
+              <div
+                className={`p-2 ${theme === "dark" ? "bg-dark-teal/50" : "bg-papaya-whip"}`}
+              >
+                <p className="text-[10px] uppercase mb-1 text-air-force-blue dark:text-tea-green">
+                  Points
+                </p>
                 <div className="flex items-end gap-1">
-                  <span className="text-xl font-bold text-bronze dark:text-ash-grey">{locationHistory.length}</span>
-                  <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">logged</span>
+                  <span className="text-xl font-bold text-bronze dark:text-ash-grey">
+                    {locationHistory.length}
+                  </span>
+                  <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">
+                    logged
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className={`absolute bottom-20 md:bottom-0 left-0 right-0 backdrop-blur-xl border-t px-6 py-3 flex items-center justify-between z-20 ${
-          theme === 'dark'
-            ? 'bg-ink-black/90 border-air-force-blue/10 text-light-beige'
-            : 'bg-cornsilk/90 border-tea-green/10 text-ink-black'
-        }`}>
+        <div
+          className={`absolute bottom-20 md:bottom-0 left-0 right-0 backdrop-blur-xl border-t px-6 py-3 flex items-center justify-between z-20 ${
+            theme === "dark"
+              ? "bg-ink-black/90 border-air-force-blue/10 text-light-beige"
+              : "bg-cornsilk/90 border-tea-green/10 text-ink-black"
+          }`}
+        >
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-bronze text-sm">location_on</span>
+              <span className="material-symbols-outlined text-bronze text-sm">
+                location_on
+              </span>
               <span className="text-xs font-bold uppercase tracking-tight">
-                {location 
+                {location
                   ? `${location.latitude.toFixed(4)}° N, ${location.longitude.toFixed(4)}° W`
-                  : 'Acquiring location...'
-                }
+                  : "Acquiring location..."}
               </span>
             </div>
           </div>
@@ -316,38 +355,38 @@ export default function MapScreen({
           <div className="flex items-center gap-2">
             <div className="flex items-center rounded-full overflow-hidden border border-dark-teal/30">
               <button
-                onClick={() => handleModeChange('activity')}
-                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle('activity')}`}
+                onClick={() => handleModeChange("activity")}
+                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle("activity")}`}
               >
                 Activity
               </button>
               <button
-                onClick={() => handleModeChange('wifi')}
-                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle('wifi')}`}
+                onClick={() => handleModeChange("wifi")}
+                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle("wifi")}`}
               >
-                WiFi Signal
+                Signal
               </button>
               <button
-                onClick={() => handleModeChange('off')}
-                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle('off')}`}
+                onClick={() => handleModeChange("off")}
+                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle("off")}`}
               >
                 Off
               </button>
             </div>
-            
+
             <button
               onClick={handleStartTracking}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
                 isTracking
-                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50'
-                  : 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/50'
+                  ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50"
+                  : "bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/50"
               }`}
             >
-              {isTracking ? 'Stop Tracking' : 'Start Tracking'}
+              {isTracking ? "Stop Tracking" : "Start Tracking"}
             </button>
           </div>
         </div>
       </main>
     </div>
-  )
+  );
 }

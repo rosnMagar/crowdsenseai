@@ -6,7 +6,6 @@ import wifi from 'node-wifi'
 app.commandLine.appendSwitch('no-sandbox')
 app.commandLine.appendSwitch('disable-setuid-sandbox')
 app.commandLine.appendSwitch('disable-gpu-sandbox')
-app.disableHardwareAcceleration()
 
 log.initialize()
 log.info('Application starting...')
