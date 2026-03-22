@@ -7,7 +7,7 @@ export interface HeatmapPoint {
   metadata?: Record<string, unknown>
 }
 
-export type ColorRange = [number, number, number, number][]
+export type ColorRange = [number, number, number][]
 
 export interface HeatmapSource {
   id: string
@@ -34,22 +34,22 @@ export const DEFAULT_LAYER_CONFIG: HeatmapLayerConfig = {
 }
 
 export const DENSITY_COLOR_SCHEME: ColorRange = [
-  [50, 50, 50, 255],
-  [56, 189, 248, 255],
-  [251, 191, 36, 255],
-  [239, 68, 68, 255]
+  [50, 50, 50],
+  [56, 189, 248],
+  [251, 191, 36],
+  [239, 68, 68]
 ]
 
 export const WIFI_COLOR_SCHEME: ColorRange = [
-  [50, 50, 50, 255],
-  [34, 197, 94, 255],
-  [132, 204, 22, 255],
-  [251, 191, 36, 255]
+  [50, 50, 50],
+  [34, 197, 94],
+  [132, 204, 22],
+  [251, 191, 36]
 ]
 
 export const DANGER_COLOR_SCHEME: ColorRange = [
-  [50, 50, 50, 255],
-  [239, 68, 68, 255],
-  [251, 191, 36, 255],
-  [34, 197, 94, 255]
+  [50, 50, 50],
+  [239, 68, 68],
+  [251, 191, 36],
+  [34, 197, 94]
 ]
