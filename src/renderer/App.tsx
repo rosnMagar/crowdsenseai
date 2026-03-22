@@ -6,15 +6,18 @@ import MapScreen from './pages/MapScreen'
 import InsightsScreen from './pages/InsightsScreen'
 import HistoryScreen from './pages/HistoryScreen'
 import SettingsScreen from './pages/SettingsScreen'
-import { useLocation } from './hooks/useLocation'
+
+import { useTrackingContext } from './contexts/TrackingContext'
 import { useAIPredictions } from './hooks/useAIPredictions'
+import { useLocationConsent } from './contexts/LocationContext'
 import type { LocationData, Session, SessionMetadata } from './types'
 import { createSession, addLocationToSession } from './services/supabase'
 
 type Page = 'map' | 'insights' | 'history' | 'settings'
 
 function App() {
-  const { location, isTracking, startTracking, stopTracking, refreshLocation, error } = useLocation()
+  const { location, isTracking, startTracking, stopTracking, refreshLocation, error } = useTrackingContext()
+  const { locationSharing } = useLocationConsent()
   const [currentPage, setCurrentPage] = useState<Page>('map')
   const [locationHistory, setLocationHistory] = useState<LocationData[]>([])
   const [currentSession, setCurrentSession] = useState<Session | null>(null)
@@ -64,6 +67,8 @@ function App() {
   const handleToggleTracking = useCallback(async () => {
     if (isTracking) {
       stopTracking()
+    } else if (locationSharing === false) {
+      return
     } else {
       if (!currentSession) {
         const metadata: SessionMetadata = {
@@ -75,7 +80,7 @@ function App() {
       }
       startTracking()
     }
-  }, [isTracking, currentSession, startNewSession, startTracking, stopTracking])
+  }, [isTracking, locationSharing, currentSession, startNewSession, startTracking, stopTracking])
 
   const handleNavigate = useCallback((page: Page) => {
     setCurrentPage(page)
