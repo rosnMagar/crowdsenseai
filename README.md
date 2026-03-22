@@ -141,6 +141,17 @@ Modify the poll interval in `useLocation.ts`:
 const DEFAULT_POLL_INTERVAL = 5000 // milliseconds
 ```
 
+## Documentation Index
+
+For detailed technical information, refer to the following guides:
+
+- **[System Architecture](file:///c:/Users/thapa/TruHacks2026/crowdsenseai/docs/prediction-system.md)** - How the signal prediction system works end-to-end.
+- **[UI Components](file:///c:/Users/thapa/TruHacks2026/crowdsenseai/docs/components.md)** - Guide to the React components and their props.
+- **[Services & Logic](file:///c:/Users/thapa/TruHacks2026/crowdsenseai/docs/services.md)** - Deep dive into AI services, WiFi scanning, and state management.
+- **[Deployment Guide](file:///c:/Users/thapa/TruHacks2026/crowdsenseai/DEPLOY.md)** - Steps to deploy the Supabase backend and edge functions.
+- **[UI Change Log](file:///c:/Users/thapa/TruHacks2026/crowdsenseai/ui-changes.md)** - Tracking progress of UI refinements and theme consistency.
+- **[Placeholder Tracking](file:///c:/Users/thapa/TruHacks2026/crowdsenseai/placeholder-data.md)** - Identification of mock data that needs to be replaced with real API data.
+
 ## Platform-Specific Setup
 
 ### macOS Location Services
