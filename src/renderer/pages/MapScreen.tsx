@@ -1,10 +1,13 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import MapView from '../components/MapView'
 import Header from '../components/Header'
 import TimeSlider from '../components/TimeSlider'
 import { useTheme } from '../contexts/ThemeContext'
+import { useHeatmap } from '../contexts/HeatmapContext'
 import { LocationData, QuadrantDensity, DensityLevel } from '../types'
 import { quadrantToLatLon } from '../services/grid'
+
+type MapMode = 'off' | 'activity' | 'wifi'
 
 interface MapScreenProps {
   location: LocationData | null
@@ -19,8 +22,10 @@ interface MapScreenProps {
   setTimeOffset?: (offset: number) => void
   getHeatmapAt?: (offset: number) => Map<string, DensityLevel>
   isAILoading?: boolean
+  confidence?: number
   trainingCountdown?: number
   lastUpdated?: Date | null
+  realTimeUsers?: Map<string, number>
 }
 
 const DENSITY_COLORS: Record<DensityLevel, string> = {
@@ -51,16 +56,31 @@ export default function MapScreen({
   onToggleTracking, 
   onNavigate,
   quadrants = [],
-  showHeatmap = false,
+  showHeatmap,
   setShowHeatmap,
   timeOffset = 0,
   setTimeOffset,
   getHeatmapAt,
   isAILoading = false,
+  confidence,
   trainingCountdown,
-  lastUpdated
+  lastUpdated,
+  realTimeUsers
 }: MapScreenProps) {
   const { theme } = useTheme()
+  const { setCurrentSource, currentSourceId } = useHeatmap()
+  const [currentMode, setCurrentMode] = useState<MapMode>('off')
+
+  const handleModeChange = useCallback((mode: MapMode) => {
+    setCurrentMode(mode)
+    if (mode === 'off') {
+      // HeatmapProvider handles this via showHeatmap
+    } else if (mode === 'activity') {
+      setCurrentSource('density')
+    } else if (mode === 'wifi') {
+      setCurrentSource('wifi-intensity')
+    }
+  }, [setCurrentSource])
 
   const handleStartTracking = useCallback(() => {
     onToggleTracking()
@@ -108,6 +128,18 @@ export default function MapScreen({
     return `${secs}s`
   }
 
+  const getModeButtonStyle = (mode: MapMode) => {
+    const isActive = currentMode === mode
+    if (mode === 'off') {
+      return isActive
+        ? 'bg-gray-500/30 text-gray-300 border border-gray-500/50'
+        : 'bg-dark-teal/20 text-air-force-blue border border-dark-teal/30 hover:bg-dark-teal/30'
+    }
+    return isActive
+      ? 'bg-teal-500/30 text-tea-green border border-teal-500/50'
+      : 'bg-dark-teal/20 text-air-force-blue border border-dark-teal/30 hover:bg-dark-teal/30'
+  }
+
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
       <Header title="Map" onNavigate={onNavigate} />
@@ -119,12 +151,12 @@ export default function MapScreen({
             currentLocation={location}
             locationHistory={locationHistory}
             heatmapQuadrants={displayQuadrants}
-            showHeatmap={showHeatmap}
+            showHeatmap={currentMode !== 'off'}
             heatmapOpacity={0.6}
           />
         </div>
 
-        {showHeatmap && (
+        {currentMode !== 'off' && currentMode === 'activity' && (
           <div className="absolute top-4 left-4 z-20">
             <div className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
               theme === 'dark'
@@ -174,7 +206,46 @@ export default function MapScreen({
           </div>
         )}
 
-        {showHeatmap && setTimeOffset && (
+        {currentMode !== 'off' && currentMode === 'wifi' && (
+          <div className="absolute top-4 left-4 z-20">
+            <div className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
+              theme === 'dark'
+                ? 'bg-ink-black/90 border-air-force-blue/10'
+                : 'bg-cornsilk/90 border-tea-green/10'
+            }`}>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
+                  WiFi Signal Map
+                </span>
+                <span className="text-xs text-teal-400">Live</span>
+              </div>
+              
+              <div className="space-y-1 mb-3">
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-3 h-3 rounded bg-green-500" />
+                  <span className="text-green-400">Strong</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-30 to -50 dBm</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-3 h-3 rounded bg-yellow-500" />
+                  <span className="text-yellow-400">Moderate</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">-50 to -70 dBm</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-3 h-3 rounded bg-red-500" />
+                  <span className="text-red-400">Weak</span>
+                  <span className="text-air-force-blue/50 dark:text-air-force-blue/40 ml-auto">Below -70 dBm</span>
+                </div>
+              </div>
+
+              <div className="text-xs text-air-force-blue/50 dark:text-air-force-blue/40">
+                Based on nearby WiFi networks
+              </div>
+            </div>
+          </div>
+        )}
+
+        {currentMode === 'activity' && setTimeOffset && (
           <div className="absolute top-4 right-4 z-20 w-64">
             <TimeSlider
               value={timeOffset}
@@ -243,18 +314,26 @@ export default function MapScreen({
           </div>
 
           <div className="flex items-center gap-2">
-            {setShowHeatmap && (
+            <div className="flex items-center rounded-full overflow-hidden border border-dark-teal/30">
               <button
-                onClick={() => setShowHeatmap(!showHeatmap)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  showHeatmap
-                    ? 'bg-tea-green/30 text-tea-green border border-tea-green/50'
-                    : 'bg-dark-teal/20 text-air-force-blue border border-dark-teal/30'
-                }`}
+                onClick={() => handleModeChange('activity')}
+                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle('activity')}`}
               >
-                {showHeatmap ? 'Activity Map On' : 'Activity Map Off'}
+                Activity
               </button>
-            )}
+              <button
+                onClick={() => handleModeChange('wifi')}
+                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle('wifi')}`}
+              >
+                WiFi Signal
+              </button>
+              <button
+                onClick={() => handleModeChange('off')}
+                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle('off')}`}
+              >
+                Off
+              </button>
+            </div>
             
             <button
               onClick={handleStartTracking}
