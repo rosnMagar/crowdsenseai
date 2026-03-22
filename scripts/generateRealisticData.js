@@ -10,23 +10,30 @@ const BOUNDS = {
   north: 40.190088
 }
 
-const ROWS = 12
-const COLS = 8
+const ROWS = 24
+const COLS = 16
 
-const HOTSPOT_QUADRANTS = ['Q_3_3', 'Q_3_4', 'Q_4_3', 'Q_4_4', 'Q_5_3', 'Q_5_4', 'Q_4_5', 'Q_5_5', 'Q_6_4']
+const CLASSROOM_ROWS = [10, 12, 14, 16, 18]
+const CLASSROOM_COL = 3
 
-const DENSITY_BY_HOUR = {
-  0: 0.1, 1: 0.05, 2: 0.03, 3: 0.02, 4: 0.05, 5: 0.1,
-  6: 0.25, 7: 0.5, 8: 0.75, 9: 0.9, 10: 0.95, 11: 0.9,
-  12: 0.85, 13: 0.8, 14: 0.85, 15: 0.9, 16: 0.95, 17: 0.9,
-  18: 0.7, 19: 0.55, 20: 0.45, 21: 0.35, 22: 0.25, 23: 0.15
+// Dorms: Q_14_11 through Q_22_11 (rows 14-22, column 11)
+const DORM_ROWS = [14, 15, 16, 17, 18, 19, 20, 21, 22]
+const DORM_COL = 11
+
+// Food locations: Q_14_11 and Q_20_11
+const FOOD_QUADRANTS = ['Q_14_11', 'Q_20_11']
+
+function isClassroom(row, col) {
+  return CLASSROOM_ROWS.includes(row) && col === CLASSROOM_COL
 }
 
-const WEEKEND_DENSITY = {
-  0: 0.15, 1: 0.1, 2: 0.05, 3: 0.03, 4: 0.02, 5: 0.05,
-  6: 0.1, 7: 0.2, 8: 0.35, 9: 0.5, 10: 0.7, 11: 0.85,
-  12: 0.95, 13: 1.0, 14: 0.95, 15: 0.9, 16: 0.85, 17: 0.75,
-  18: 0.6, 19: 0.5, 20: 0.4, 21: 0.35, 22: 0.25, 23: 0.2
+function isDorm(row, col) {
+  return DORM_ROWS.includes(row) && col === DORM_COL
+}
+
+function isFood(row, col) {
+  const qId = `Q_${row}_${col}`
+  return FOOD_QUADRANTS.includes(qId)
 }
 
 function randomInRange(min, max) {
@@ -37,15 +44,72 @@ function quadrantIndexToLatLon(row, col) {
   const latStep = (BOUNDS.north - BOUNDS.south) / ROWS
   const lonStep = (BOUNDS.east - BOUNDS.west) / COLS
   return {
-    lat: BOUNDS.south + row * latStep + randomInRange(latStep * 0.1, latStep * 0.9),
-    lon: BOUNDS.west + col * lonStep + randomInRange(lonStep * 0.1, lonStep * 0.9)
+    lat: BOUNDS.south + row * latStep + randomInRange(latStep * 0.2, latStep * 0.8),
+    lon: BOUNDS.west + col * lonStep + randomInRange(lonStep * 0.2, lonStep * 0.8)
   }
 }
 
-function getDensityForHour(hour, dayOfWeek) {
+// Weekday base density patterns (0-23 hours)
+const BASE_WEEKDAY = [
+  0.03, 0.02, 0.01, 0.01, 0.01, 0.03,  // 0-5: Deep night
+  0.08, 0.25, 0.55, 0.70, 0.75, 0.70,   // 6-11: Morning surge
+  0.65, 0.60, 0.65, 0.70, 0.60, 0.50,   // 12-17: Afternoon
+  0.45, 0.50, 0.55, 0.45, 0.30, 0.15     // 18-23: Evening decline
+]
+
+// Weekend base density patterns
+const BASE_WEEKEND = [
+  0.05, 0.03, 0.02, 0.01, 0.01, 0.01,  // 0-5: Slightly more night activity
+  0.02, 0.03, 0.08, 0.20, 0.40, 0.60,   // 6-11: Late mornings
+  0.70, 0.75, 0.70, 0.65, 0.55, 0.45,   // 12-17: Afternoon
+  0.40, 0.45, 0.50, 0.55, 0.45, 0.30    // 18-23: Social evening
+]
+
+// Dorm activity: High at night (10pm-2am), moderate morning, low during day
+const DORM_PATTERN = [
+  0.60, 0.70, 0.75, 0.80, 0.75, 0.65,   // 0-5: Sleeping/tight
+  0.50, 0.35, 0.25, 0.20, 0.20, 0.25,   // 6-11: Morning out
+  0.30, 0.25, 0.25, 0.30, 0.35, 0.45,   // 12-17: Afternoon
+  0.50, 0.55, 0.60, 0.65, 0.70, 0.65    // 18-23: Evening return, peak at 10pm
+]
+
+// Classroom patterns: High during class hours (8-5), near zero at night
+const CLASSROOM_PATTERN = [
+  0.01, 0.01, 0.01, 0.01, 0.01, 0.02,   // 0-5: Closed
+  0.05, 0.15, 0.60, 0.85, 0.90, 0.85,   // 6-11: Morning classes peak
+  0.80, 0.75, 0.80, 0.85, 0.75, 0.55,   // 12-17: Afternoon classes
+  0.20, 0.10, 0.08, 0.05, 0.03, 0.02    // 18-23: Evening, some night classes
+]
+
+// Food/dining patterns: Peak at meal times (7-9am, 11am-1pm, 5-7pm)
+const FOOD_PATTERN = [
+  0.02, 0.01, 0.01, 0.01, 0.01, 0.02,   // 0-5
+  0.05, 0.40, 0.70, 0.40, 0.30, 0.35,   // 6-11: Breakfast peak
+  0.75, 0.65, 0.55, 0.50, 0.45, 0.50,   // 12-17: Lunch, afternoon
+  0.60, 0.75, 0.65, 0.40, 0.25, 0.15    // 18-23: Dinner peak 7-8pm
+]
+
+function getDensity(row, col, hour, dayOfWeek) {
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-  const baseDensity = isWeekend ? WEEKEND_DENSITY[hour] : DENSITY_BY_HOUR[hour]
-  return baseDensity
+  const base = isWeekend ? BASE_WEEKEND[hour] : BASE_WEEKDAY[hour]
+  
+  // Dorms
+  if (isDorm(row, col)) {
+    return DORM_PATTERN[hour]
+  }
+  
+  // Classrooms
+  if (isClassroom(row, col)) {
+    return CLASSROOM_PATTERN[hour]
+  }
+  
+  // Food/dining
+  if (isFood(row, col)) {
+    return FOOD_PATTERN[hour]
+  }
+  
+  // Default: base campus density (low for non-specified areas)
+  return base * randomInRange(0.1, 0.3)
 }
 
 async function clearOldSampleData() {
@@ -63,36 +127,36 @@ async function clearOldSampleData() {
   }
 }
 
-async function generateRealisticData() {
+async function generateData() {
   const supabase = createClient(supabaseUrl, supabaseKey)
   
-  console.log('Generating realistic sample data...')
+  console.log('Generating university campus sample data...\n')
+  console.log('Building locations (50m grid - higher resolution):')
+  console.log('  Classrooms: Q_10_3, Q_12_3, Q_14_3, Q_16_3, Q_18_3 (column 3)')
+  console.log('  Dorms: Q_14_11 through Q_22_11 (column 11)')
+  console.log('  Food: Q_14_11, Q_20_11\n')
   
   await clearOldSampleData()
   
   const allData = []
-  const daysToGenerate = [16, 17, 18, 19, 20, 21]
+  const daysToGenerate = [1, 2, 3, 4, 5, 6, 7]  // Last 7 days
   
   for (const dayOffset of daysToGenerate) {
-    const baseDate = new Date('2026-03-21T00:00:00')
+    const baseDate = new Date()
     baseDate.setDate(baseDate.getDate() - dayOffset)
+    baseDate.setHours(0, 0, 0, 0)
     const dayOfWeek = baseDate.getDay()
+    const dayType = dayOfWeek === 0 ? 'Sunday' : dayOfWeek === 6 ? 'Saturday' : 'Weekday'
     
-    console.log(`Generating data for ${baseDate.toISOString().split('T')[0]} (day ${dayOffset} ago, weekday: ${dayOfWeek === 0 ? 'Sunday' : dayOfWeek === 6 ? 'Saturday' : 'Weekday'})`)
+    console.log(`Generating ${baseDate.toISOString().split('T')[0]} (${dayType})...`)
     
     for (let hour = 0; hour < 24; hour++) {
-      const hourDensity = getDensityForHour(hour, dayOfWeek)
-      
       for (let row = 0; row < ROWS; row++) {
         for (let col = 0; col < COLS; col++) {
           const qId = `Q_${row}_${col}`
-          const isHotspot = HOTSPOT_QUADRANTS.includes(qId)
+          const density = getDensity(row, col, hour, dayOfWeek)
           
-          const adjustedDensity = isHotspot 
-            ? Math.min(1, hourDensity * 1.5) 
-            : hourDensity * randomInRange(0.7, 1.0)
-          
-          const numPoints = Math.floor(adjustedDensity * 20)
+          const numPoints = Math.floor(density * 30)
           
           for (let i = 0; i < numPoints; i++) {
             const minute = Math.floor(Math.random() * 60)
@@ -102,8 +166,9 @@ async function generateRealisticData() {
             const { lat, lon } = quadrantIndexToLatLon(row, col)
             
             let densityLevel
-            if (numPoints < 5) densityLevel = 1
-            else if (numPoints < 12) densityLevel = 2
+            if (numPoints < 2) densityLevel = 0
+            else if (numPoints < 5) densityLevel = 1
+            else if (numPoints < 10) densityLevel = 2
             else densityLevel = 3
             
             allData.push({
@@ -123,7 +188,7 @@ async function generateRealisticData() {
     }
   }
   
-  console.log(`Generated ${allData.length} total data points`)
+  console.log(`\nGenerated ${allData.length.toLocaleString()} total data points`)
   
   const batchSize = 500
   let inserted = 0
@@ -136,31 +201,40 @@ async function generateRealisticData() {
       console.error(`Error inserting batch:`, error.message)
     } else {
       inserted += batch.length
-      process.stdout.write(`\rInserted ${inserted}/${allData.length}`)
+      process.stdout.write(`\rInserted ${inserted.toLocaleString()}/${allData.length.toLocaleString()}`)
     }
   }
   
-  console.log(`\nInserted ${inserted} records`)
+  console.log(`\n\nInserted ${inserted.toLocaleString()} records`)
   
   const { count } = await supabase
     .from('quadrant_data')
     .select('*', { count: 'exact', head: true })
   
-  console.log(`Total records in database: ${count}`)
+  console.log(`Total records in database: ${count?.toLocaleString()}`)
   
-  const { data: stats } = await supabase
-    .from('quadrant_data')
-    .select('hour_of_day, quadrant_id, density')
-    .gte('timestamp', '2026-03-17T00:00:00')
-    .limit(100)
+  console.log('\n--- Density Patterns Summary ---\n')
   
-  console.log('\nSample data by hour:')
-  const byHour = {}
-  for (const r of stats) {
-    if (!byHour[r.hour_of_day]) byHour[r.hour_of_day] = 0
-    byHour[r.hour_of_day]++
+  console.log('Dorms (Q_1_6 to Q_5_6) - High at night:')
+  for (let h = 0; h < 24; h += 3) {
+    const density = DORM_PATTERN[h]
+    const bars = '█'.repeat(Math.round(density * 20))
+    console.log(`  ${h.toString().padStart(2, '0')}:00 ${bars} (${(density * 100).toFixed(0)}%)`)
   }
-  console.log(byHour)
+  
+  console.log('\nClassrooms (Q_1_4 to Q_6_4) - Peak 8am-5pm:')
+  for (let h = 0; h < 24; h += 3) {
+    const density = CLASSROOM_PATTERN[h]
+    const bars = '█'.repeat(Math.round(density * 20))
+    console.log(`  ${h.toString().padStart(2, '0')}:00 ${bars} (${(density * 100).toFixed(0)}%)`)
+  }
+  
+  console.log('\nFood (Q_2_6, Q_5_6) - Peak at meals:')
+  for (let h = 0; h < 24; h += 3) {
+    const density = FOOD_PATTERN[h]
+    const bars = '█'.repeat(Math.round(density * 20))
+    console.log(`  ${h.toString().padStart(2, '0')}:00 ${bars} (${(density * 100).toFixed(0)}%)`)
+  }
 }
 
-generateRealisticData().catch(console.error)
+generateData().catch(console.error)

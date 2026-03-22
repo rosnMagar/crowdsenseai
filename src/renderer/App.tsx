@@ -24,12 +24,10 @@ function AppContent() {
   const {
     quadrants,
     isLoading: isAILoading,
-    confidence,
     updatePredictions,
     getHeatmapAt,
     trainingCountdown,
-    lastUpdated,
-    realTimeUsers
+    lastUpdated
   } = useAIPredictions()
 
   const [showHeatmap, setShowHeatmap] = useState(false)
@@ -91,7 +89,7 @@ function AppContent() {
             locationHistory={locationHistory}
             isTracking={isTracking}
             onToggleTracking={handleToggleTracking}
-            onNavigate={handleNavigate}
+            onNavigate={handleNavigate as (page: 'map' | 'insights' | 'history' | 'settings') => void}
             quadrants={quadrants}
             showHeatmap={showHeatmap}
             setShowHeatmap={setShowHeatmap}
@@ -99,18 +97,16 @@ function AppContent() {
             setTimeOffset={setTimeOffset}
             getHeatmapAt={getHeatmapAt}
             isAILoading={isAILoading}
-            confidence={confidence}
             trainingCountdown={trainingCountdown}
             lastUpdated={lastUpdated}
-            realTimeUsers={realTimeUsers}
           />
         )
       case 'insights':
-        return <InsightsScreen onNavigate={handleNavigate} />
+        return <InsightsScreen onNavigate={handleNavigate as (page: string) => void} />
       case 'history':
-        return <HistoryScreen history={locationHistory} onNavigate={handleNavigate} />
+        return <HistoryScreen history={locationHistory} onNavigate={handleNavigate as (page: string) => void} />
       case 'settings':
-        return <SettingsScreen onNavigate={handleNavigate} />
+        return <SettingsScreen onNavigate={handleNavigate as (page: string) => void} />
       default:
         return (
           <MapScreen
@@ -118,7 +114,7 @@ function AppContent() {
             locationHistory={locationHistory}
             isTracking={isTracking}
             onToggleTracking={handleToggleTracking}
-            onNavigate={handleNavigate}
+            onNavigate={handleNavigate as (page: 'map' | 'insights' | 'history' | 'settings') => void}
             quadrants={quadrants}
             showHeatmap={showHeatmap}
             setShowHeatmap={setShowHeatmap}
@@ -126,10 +122,8 @@ function AppContent() {
             setTimeOffset={setTimeOffset}
             getHeatmapAt={getHeatmapAt}
             isAILoading={isAILoading}
-            confidence={confidence}
             trainingCountdown={trainingCountdown}
             lastUpdated={lastUpdated}
-            realTimeUsers={realTimeUsers}
           />
         )
     }
@@ -137,11 +131,11 @@ function AppContent() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar currentPage={currentPage} onNavigate={(page) => setCurrentPage(page as Page)} />
+      <Sidebar currentPage={currentPage} onNavigate={handleNavigate} />
       <div className="flex-1 flex flex-col overflow-hidden">
         {renderPage()}
       </div>
-      <BottomNav currentPage={currentPage} onNavigate={(page) => setCurrentPage(page as Page)} />
+      <BottomNav currentPage={currentPage} onNavigate={handleNavigate} />
     </div>
   )
 }

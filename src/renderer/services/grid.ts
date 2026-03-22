@@ -7,15 +7,9 @@ const BOUNDS = {
   north: 40.190088
 }
 
-const QUADRANT_SIZE_METERS = 100
-const METERS_PER_DEG_LAT = 111139
-const METERS_PER_DEG_LON = 111139 * Math.cos(BOUNDS.south * Math.PI / 180)
-
-const GRID_WIDTH_METERS = Math.abs(BOUNDS.east - BOUNDS.west) * METERS_PER_DEG_LON
-const GRID_HEIGHT_METERS = Math.abs(BOUNDS.north - BOUNDS.south) * METERS_PER_DEG_LAT
-
-const COLS = Math.round(GRID_WIDTH_METERS / QUADRANT_SIZE_METERS)
-const ROWS = Math.round(GRID_HEIGHT_METERS / QUADRANT_SIZE_METERS)
+const ROWS = 24
+const COLS = 16
+const QUADRANT_SIZE_METERS = 50
 
 export const GRID_CONFIG: GridConfig = {
   bounds: BOUNDS,

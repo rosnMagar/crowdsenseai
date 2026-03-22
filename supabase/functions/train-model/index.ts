@@ -2,10 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const GRID_CONFIG = {
-  totalQuadrants: 96,
+  totalQuadrants: 384,
   inputSize: 121,
-  hiddenSizes: [64, 32],
-  outputSize: 96
+  hiddenSizes: [128, 64],
+  outputSize: 384
 }
 
 const BOUNDS = {
@@ -201,6 +201,7 @@ serve(async (req: Request) => {
       .select('*')
       .eq('is_prediction', false)
       .gte('timestamp', cutoffDate.toISOString())
+      .limit(5000)
     
     if (fetchError || !quadrantData) {
       throw new Error(`Failed to fetch data: ${fetchError?.message}`)
@@ -215,8 +216,8 @@ serve(async (req: Request) => {
       )
     }
 
-    const ROWS = 12
-    const COLS = 8
+    const ROWS = 24
+    const COLS = 16
     
     const trainingMap = new Map<string, Map<number, number>>()
     
@@ -268,7 +269,7 @@ serve(async (req: Request) => {
       GRID_CONFIG.outputSize
     )
     
-    const epochs = 200
+    const epochs = 50
     const result = network.train(inputs, outputs, epochs)
     
     console.log(`Training complete. Accuracy: ${(result.accuracy * 100).toFixed(2)}%`)
