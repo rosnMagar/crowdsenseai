@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import log from 'electron-log/main.js'
-import wifi from 'node-wifi'
 
 app.commandLine.appendSwitch('no-sandbox')
 app.commandLine.appendSwitch('disable-setuid-sandbox')
@@ -10,10 +9,6 @@ log.initialize()
 log.info('Application starting...')
 
 let mainWindow: BrowserWindow | null = null
-
-wifi.init({
-  iface: null
-})
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -74,79 +69,5 @@ ipcMain.handle('log-message', (_event, level: string, message: string) => {
       break
     default:
       log.debug(message)
-  }
-})
-
-interface WifiAccessPoint {
-  bssid: string
-  ssid: string
-  mac: string
-  channel: number
-  frequency: number
-  signal_level: number
-  quality: number
-  security: string
-  security_flags: string
-}
-
-interface WifiScanResult {
-  bssid: string
-  ssid: string
-  signal: number
-  channel: number
-  frequency: number
-  quality: number
-  security: string
-}
-
-ipcMain.handle('wifi:scan', async (): Promise<WifiScanResult[]> => {
-  try {
-    log.info('Starting WiFi scan...')
-    const networks: WifiAccessPoint[] = await wifi.scan()
-    log.info(`WiFi scan complete: ${networks.length} networks found`)
-    
-    return networks.map(network => ({
-      bssid: network.bssid,
-      ssid: network.ssid,
-      signal: network.signal_level,
-      channel: network.channel,
-      frequency: network.frequency,
-      quality: network.quality,
-      security: network.security
-    }))
-  } catch (error) {
-    log.error('WiFi scan failed:', error)
-    throw error
-  }
-})
-
-ipcMain.handle('wifi:getCurrentConnections', async (): Promise<WifiScanResult[]> => {
-  try {
-    const connections: WifiAccessPoint[] = await wifi.getCurrentConnections()
-    return connections.map(conn => ({
-      bssid: conn.bssid,
-      ssid: conn.ssid,
-      signal: conn.signal_level,
-      channel: conn.channel,
-      frequency: conn.frequency,
-      quality: conn.quality,
-      security: conn.security
-    }))
-  } catch (error) {
-    log.error('Failed to get current connections:', error)
-    throw error
-  }
-})
-
-ipcMain.handle('wifi:getSignalStrength', async (): Promise<number> => {
-  try {
-    const connections: WifiAccessPoint[] = await wifi.getCurrentConnections()
-    if (connections.length > 0) {
-      return connections[0].signal_level
-    }
-    return -100
-  } catch (error) {
-    log.error('Failed to get signal strength:', error)
-    return -100
   }
 })

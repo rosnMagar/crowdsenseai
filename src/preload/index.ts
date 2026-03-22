@@ -7,25 +7,10 @@ export interface LocationData {
   timestamp: number
 }
 
-export interface WifiScanResult {
-  bssid: string
-  ssid: string
-  signal: number
-  channel: number
-  frequency: number
-  quality: number
-  security: string
-}
-
 export interface ElectronAPI {
   getLocation: () => Promise<LocationData>
   log: (level: string, message: string) => void
   onLocationUpdate: (callback: (location: LocationData) => void) => void
-  wifi: {
-    scan: () => Promise<WifiScanResult[]>
-    getCurrentConnections: () => Promise<WifiScanResult[]>
-    getSignalStrength: () => Promise<number>
-  }
 }
 
 const electronAPI: ElectronAPI = {
@@ -65,11 +50,6 @@ const electronAPI: ElectronAPI = {
   log: (level, message) => ipcRenderer.invoke('log-message', level, message),
   onLocationUpdate: (callback) => {
     ipcRenderer.on('location-update', (_event, location) => callback(location))
-  },
-  wifi: {
-    scan: () => ipcRenderer.invoke('wifi:scan'),
-    getCurrentConnections: () => ipcRenderer.invoke('wifi:getCurrentConnections'),
-    getSignalStrength: () => ipcRenderer.invoke('wifi:getSignalStrength')
   }
 }
 
