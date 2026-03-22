@@ -47,7 +47,7 @@ export function useAIPredictions(): UseAIPredictionsReturn {
       setRealTimeUsers(userMap)
       realtimeDataRef.current = snapshotData
       
-      const response = await fetchPredictions(snapshotData)
+      const response = await fetchPredictions(snapshotData, 180)
 
       if (!response || !response.success) {
         setError(response?.error || 'Failed to fetch predictions')

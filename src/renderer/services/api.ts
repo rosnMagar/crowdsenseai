@@ -49,18 +49,22 @@ export interface RealTimeData {
   locations?: { latitude: number; longitude: number; timestamp: number }[]
 }
 
-export async function fetchPredictions(snapshot?: RealTimeData[]): Promise<PredictResponse | null> {
+export async function fetchPredictions(snapshot?: RealTimeData[], maxMinutesAhead?: number): Promise<PredictResponse | null> {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Supabase credentials not configured')
     return null
   }
 
   try {
+    const now = new Date()
+    const currentHour = now.getHours()
+    const currentDay = now.getDay()
+
     const body = snapshot && snapshot.length > 0 
       ? { snapshot: snapshot.map(s => ({ quadrantId: s.quadrantId, userCount: s.userCount })) }
       : {}
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/predict`, {
+    const response = await fetch(`${supabaseUrl}/functions/v1/predict?hour=${currentHour}&day=${currentDay}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
