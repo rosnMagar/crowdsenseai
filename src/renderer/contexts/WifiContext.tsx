@@ -34,6 +34,8 @@ export function WifiProvider({ children }: { children: ReactNode }) {
       const connected = await window.electronAPI.wifi.getCurrentConnections()
       if (connected.length > 0) {
         setCurrentSignal(connected[0].signal)
+        // log entire array
+        console.log(connected)
         setStrongestNetwork({
           ssid: connected[0].ssid || 'Unknown Network',
           bssid: connected[0].bssid,
