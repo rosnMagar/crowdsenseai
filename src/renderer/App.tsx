@@ -8,12 +8,13 @@ import HistoryScreen from './pages/HistoryScreen'
 import SettingsScreen from './pages/SettingsScreen'
 import { useLocation } from './hooks/useLocation'
 import { useAIPredictions } from './hooks/useAIPredictions'
+import { HeatmapProvider } from './contexts/HeatmapContext'
 import type { LocationData, Session, SessionMetadata } from './types'
 import { createSession, addLocationToSession } from './services/supabase'
 
 type Page = 'map' | 'insights' | 'history' | 'settings'
 
-function App() {
+function AppContent() {
   const { location, isTracking, startTracking, stopTracking, refreshLocation, error } = useLocation()
   const [currentPage, setCurrentPage] = useState<Page>('map')
   const [locationHistory, setLocationHistory] = useState<LocationData[]>([])
@@ -142,6 +143,14 @@ function App() {
       </div>
       <BottomNav currentPage={currentPage} onNavigate={(page) => setCurrentPage(page as Page)} />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <HeatmapProvider>
+      <AppContent />
+    </HeatmapProvider>
   )
 }
 
