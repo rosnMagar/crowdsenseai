@@ -9,6 +9,8 @@ import { LocationData, QuadrantDensity, DensityLevel } from '../types'
 import { quadrantToLatLon } from '../services/grid'
 import { addWifiObservation, WifiObservation } from '../services/wifiTracker'
 import { generateDummyWifiObservations } from '../services/dummyData'
+import ImageUploader from '../components/ImageUploader'
+import { fetchGeotaggedImages, GeotaggedImage } from '../services/api'
 
 type MapMode = "activity" | "wifi";
 
@@ -76,6 +78,28 @@ export default function MapScreen({
   const [currentMode, setCurrentMode] = useState<MapMode>("activity")
   const [isScanning, setIsScanning] = useState(false)
   const lastScanRef = useRef<number>(0)
+  
+  const [isUploaderOpen, setIsUploaderOpen] = useState(false)
+  const [selectedImageGroup, setSelectedImageGroup] = useState<GeotaggedImage[] | null>(null)
+  const [carouselIndex, setCarouselIndex] = useState(0)
+  const [imageGroups, setImageGroups] = useState<GeotaggedImage[][]>([])
+
+  const loadImages = useCallback(async () => {
+    const images = await fetchGeotaggedImages()
+    const groups: Record<string, GeotaggedImage[]> = {}
+    for (const img of images) {
+      const key = `${img.latitude.toFixed(5)},${img.longitude.toFixed(5)}`
+      if (!groups[key]) groups[key] = []
+      groups[key].push(img)
+    }
+    setImageGroups(Object.values(groups))
+  }, [])
+
+  useEffect(() => {
+    loadImages()
+    const interval = setInterval(loadImages, 30000)
+    return () => clearInterval(interval)
+  }, [loadImages])
 
   const handleModeChange = useCallback((mode: MapMode) => {
     setCurrentMode(mode)
@@ -210,8 +234,101 @@ export default function MapScreen({
             heatmapMode={currentMode === 'wifi' ? 'heatmap' : 'polygon'}
             wifiObservations={wifiObservations}
             wifiHeatmapData={wifiHeatmapData}
+            imageGroups={imageGroups}
+            onGroupClick={(group) => {
+              setCarouselIndex(0)
+              setSelectedImageGroup(group)
+            }}
           />
         </div>
+
+        {isUploaderOpen && (
+          <ImageUploader 
+            currentLocation={location}
+            onClose={() => setIsUploaderOpen(false)}
+            onSuccess={() => {
+              setIsUploaderOpen(false)
+              loadImages()
+            }}
+          />
+        )}
+
+        {selectedImageGroup && selectedImageGroup.length > 0 && (
+          <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" 
+            onClick={() => setSelectedImageGroup(null)}
+          >
+            <div 
+              className="relative max-w-6xl w-full max-h-[90vh] flex flex-col items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" 
+              onClick={e => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setSelectedImageGroup(null)}
+                className="absolute -top-4 -right-4 md:top-4 md:right-4 text-white/70 hover:text-white bg-black/50 hover:bg-black/90 rounded-full w-12 h-12 flex items-center justify-center transition-all focus:outline-none z-[110] shadow-2xl border border-white/10"
+                title="Close Image"
+              >
+                <span className="material-symbols-outlined text-2xl">close</span>
+              </button>
+              
+              <div className="relative flex items-center justify-center w-full">
+                {selectedImageGroup.length > 1 && (
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setCarouselIndex(i => i === 0 ? selectedImageGroup.length - 1 : i - 1); 
+                    }}
+                    className="absolute left-0 md:left-4 z-20 text-white hover:text-teal-400 bg-black/60 hover:bg-black/90 p-3 rounded-full transition-all shadow-xl"
+                  >
+                    <span className="material-symbols-outlined text-3xl">chevron_left</span>
+                  </button>
+                )}
+                
+                <img 
+                  src={selectedImageGroup[carouselIndex].image_url} 
+                  alt={selectedImageGroup[carouselIndex].description} 
+                  className="max-w-full max-h-[60vh] md:max-h-[70vh] object-contain rounded-xl shadow-2xl border border-white/20 transition-opacity duration-300" 
+                  key={selectedImageGroup[carouselIndex].id}
+                />
+
+                {selectedImageGroup.length > 1 && (
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setCarouselIndex(i => (i + 1) % selectedImageGroup.length); 
+                    }}
+                    className="absolute right-0 md:right-4 z-20 text-white hover:text-teal-400 bg-black/60 hover:bg-black/90 p-3 rounded-full transition-all shadow-xl"
+                  >
+                    <span className="material-symbols-outlined text-3xl">chevron_right</span>
+                  </button>
+                )}
+              </div>
+
+              {selectedImageGroup.length > 1 && (
+                <div className="flex gap-3 mt-5">
+                  {selectedImageGroup.map((_, i) => (
+                    <button 
+                      key={i} 
+                      onClick={() => setCarouselIndex(i)}
+                      className={`w-3 h-3 rounded-full transition-all ${i === carouselIndex ? 'bg-teal-400 scale-125' : 'bg-white/30 hover:bg-white/60'}`} 
+                    />
+                  ))}
+                </div>
+              )}
+              
+              <div className="mt-5 p-4 md:p-6 bg-black/60 rounded-xl backdrop-blur-lg text-white text-center w-full max-w-3xl border border-white/10 shadow-2xl">
+                <p className="text-base md:text-lg font-medium leading-relaxed">{selectedImageGroup[carouselIndex].description}</p>
+                <div className="text-xs text-white/50 mt-3 font-medium uppercase tracking-widest flex items-center justify-center gap-2">
+                  {selectedImageGroup.length > 1 && (
+                    <span className="bg-teal-500/20 text-teal-400 px-2 py-1 rounded">Photo {carouselIndex + 1} of {selectedImageGroup.length}</span>
+                  )}
+                  {selectedImageGroup[carouselIndex].created_at && (
+                    <span>• {new Date(selectedImageGroup[carouselIndex].created_at!).toLocaleString()}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {currentMode === "activity" && (
           <div className="absolute top-4 left-4 z-20">
@@ -416,6 +533,13 @@ export default function MapScreen({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+               onClick={() => setIsUploaderOpen(true)}
+               className="w-9 h-9 flex items-center justify-center rounded-full bg-teal-500 text-white shadow-lg hover:bg-teal-400 transition-colors mr-1"
+               title="Add Geotagged Photo"
+            >
+              <span className="material-symbols-outlined text-sm">add_a_photo</span>
+            </button>
             <div className="flex items-center rounded-full overflow-hidden border border-dark-teal/30">
               <button
                 onClick={() => handleModeChange("activity")}

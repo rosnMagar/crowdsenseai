@@ -219,3 +219,92 @@ export async function fetchWifiData(minutesBack: number = 0): Promise<WifiUpload
     return []
   }
 }
+
+export interface GeotaggedImage {
+  id?: string
+  image_url: string
+  description: string
+  latitude: number
+  longitude: number
+  created_at?: string
+  uploader_id?: string
+}
+
+const DB_NAME = 'CrowdSenseLocal'
+const STORE_NAME = 'images'
+
+async function getDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1)
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(STORE_NAME)) {
+        req.result.createObjectStore(STORE_NAME, { keyPath: 'id' })
+      }
+    }
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+export async function uploadImageFile(file: File, filename: string): Promise<string | null> {
+  try {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string) // base64 string
+      reader.onerror = () => reject('Failed to read file')
+      reader.readAsDataURL(file)
+    })
+  } catch (err) {
+    console.error('Error creating local image base64 string:', err)
+    return null
+  }
+}
+
+export async function uploadImageMetadata(image: GeotaggedImage): Promise<boolean> {
+  try {
+    image.id = `local_${Date.now()}`
+    image.created_at = new Date().toISOString()
+    
+    const db = await getDB()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite')
+      const store = tx.objectStore(STORE_NAME)
+      const req = store.add(image)
+      req.onsuccess = () => resolve(true)
+      req.onerror = () => {
+        console.error('IDB Add error', req.error)
+        resolve(false)
+      }
+    })
+  } catch (err) {
+    console.error('Error saving local image metadata to IDB:', err)
+    return false
+  }
+}
+
+export async function fetchGeotaggedImages(): Promise<GeotaggedImage[]> {
+  try {
+    const db = await getDB()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly')
+      const store = tx.objectStore(STORE_NAME)
+      const req = store.getAll()
+      req.onsuccess = () => {
+        const data = req.result as GeotaggedImage[]
+        // Sort newest first
+        const sorted = data.sort((a, b) => {
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        })
+        resolve(sorted)
+      }
+      req.onerror = () => {
+        console.error('IDB fetch all error', req.error)
+        resolve([])
+      }
+    })
+  } catch (err) {
+    console.error('Error fetching images out of IDB:', err)
+    return []
+  }
+}
+

@@ -2,9 +2,10 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import DeckGL from '@deck.gl/react'
 import { ScatterplotLayer, PathLayer, PolygonLayer } from '@deck.gl/layers'
 import { HeatmapLayer } from '@deck.gl/aggregation-layers'
-import { Map } from 'react-map-gl/maplibre'
+import { Map, Marker } from 'react-map-gl/maplibre'
 import { LocationData, QuadrantDensity, DensityLevel } from '../types'
 import { WifiObservation } from '../services/wifiTracker'
+import { GeotaggedImage } from '../services/api'
 import { HeatmapPoint } from '../types/heatmap'
 import { useTheme } from '../contexts/ThemeContext'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -18,6 +19,8 @@ interface MapViewProps {
   heatmapMode?: 'polygon' | 'heatmap'
   wifiObservations?: WifiObservation[]
   wifiHeatmapData?: HeatmapPoint[]
+  imageGroups?: GeotaggedImage[][]
+  onGroupClick?: (group: GeotaggedImage[]) => void
 }
 
 const DENSITY_COLORS: Record<number, { fill: [number, number, number, number]; stroke: [number, number, number, number] }> = {
@@ -69,10 +72,13 @@ function MapView({
   heatmapOpacity = 0.6,
   heatmapMode = 'polygon',
   wifiObservations = [],
-  wifiHeatmapData = []
+  wifiHeatmapData = [],
+  imageGroups = [],
+  onGroupClick
 }: MapViewProps) {
   const { theme } = useTheme()
   const [viewState, setViewState] = useState(() => ({ ...INITIAL_VIEW_STATE }))
+  const [hoverInfo, setHoverInfo] = useState<{ x: number, y: number, group: GeotaggedImage[] } | null>(null)
 
   const themeColors = useMemo(() => {
     if (theme === 'dark') {
@@ -238,8 +244,24 @@ function MapView({
       )
     }
 
+    if (imageGroups && imageGroups.length > 0) {
+      layerList.push(
+        new ScatterplotLayer<GeotaggedImage[]>({
+          id: 'geotagged-images-picking-layer',
+          data: imageGroups,
+          pickable: true,
+          getPosition: d => [d[0].longitude, d[0].latitude],
+          getRadius: 30,
+          radiusUnits: 'pixels',
+          getFillColor: [0, 0, 0, 0], 
+          getLineColor: [0, 0, 0, 0],
+          lineWidthMinPixels: 0,
+        })
+      )
+    }
+
     return layerList
-  }, [currentLocation, locationHistory, quadrantPolygons, showHeatmap, heatmapMode, wifiObservations, wifiHeatmapData, heatmapOpacity, themeColors, pathData])
+  }, [currentLocation, locationHistory, quadrantPolygons, showHeatmap, heatmapMode, wifiObservations, wifiHeatmapData, heatmapOpacity, themeColors, pathData, imageGroups])
 
   const onViewStateChange = useCallback((info: { viewState: Record<string, unknown> }) => {
     setViewState(info.viewState as typeof INITIAL_VIEW_STATE)
@@ -249,9 +271,24 @@ function MapView({
     return isHovering ? 'pointer' : 'grab'
   }, [])
 
-  const getTooltip = useCallback(({ object }: { object?: WifiObservation | { signal: number } }) => {
+  const onHover = useCallback((info: any) => {
+    if (info.layer?.id === 'geotagged-images-picking-layer' && info.object) {
+      setHoverInfo({ x: info.x, y: info.y, group: info.object as GeotaggedImage[] })
+    } else {
+      setHoverInfo(null)
+    }
+  }, [])
+
+  const onLayerClick = useCallback(({ object, layer }: any) => {
+    if (layer?.id === 'geotagged-images-picking-layer' && object && onGroupClick) {
+      onGroupClick(object)
+    }
+  }, [onGroupClick])
+
+  const getTooltip = useCallback(({ object }: { object?: any }) => {
     if (!object) return null
     
+
     if ('signalStrength' in object) {
       return {
         html: `<div style="padding: 8px; background: rgba(0,0,0,0.85); border-radius: 6px; color: white; font-family: system-ui; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
@@ -286,19 +323,77 @@ function MapView({
   }, [currentLocation?.longitude, currentLocation?.latitude, locationHistory.length])
 
   return (
-    <DeckGL
-      viewState={viewState}
-      onViewStateChange={onViewStateChange}
-      controller={true}
-      layers={layers}
-      getCursor={getCursor}
-      getTooltip={getTooltip}
-    >
-      <Map
-        mapStyle={mapStyle}
-        attributionControl={false}
-      />
-    </DeckGL>
+    <div className="relative w-full h-full">
+      <DeckGL
+        viewState={viewState}
+        onViewStateChange={onViewStateChange}
+        controller={true}
+        layers={layers}
+        getCursor={getCursor}
+        getTooltip={getTooltip}
+        onClick={onLayerClick}
+        onHover={onHover}
+      >
+        <Map
+          mapStyle={mapStyle}
+          attributionControl={false}
+        >
+          {imageGroups?.map((group) => {
+            const firstImg = group[0];
+            return (
+              <Marker
+                key={`marker-${firstImg.id || firstImg.latitude}`}
+                longitude={firstImg.longitude}
+                latitude={firstImg.latitude}
+                anchor="bottom"
+              >
+                <div className="relative">
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl border-2 border-white shadow-xl overflow-hidden bg-gray-200 pointer-events-none">
+                    <img src={firstImg.image_url} alt="Accessibility Feature" className="w-full h-full object-cover" />
+                  </div>
+                  {group.length > 1 && (
+                    <div className="absolute -top-2 -right-2 bg-teal-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow border-2 border-white pointer-events-none">
+                      {group.length}
+                    </div>
+                  )}
+                </div>
+              </Marker>
+            );
+          })}
+        </Map>
+      </DeckGL>
+
+      {hoverInfo && (
+        <div 
+          className="absolute z-[9999] pointer-events-auto cursor-pointer animate-in fade-in zoom-in-95 duration-200"
+          style={{ left: hoverInfo.x, top: hoverInfo.y, transform: 'translate(-50%, -100%)', marginTop: '-12px' }}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (onGroupClick) {
+              onGroupClick(hoverInfo.group)
+              setHoverInfo(null)
+            }
+          }}
+        >
+          <div className="w-56 p-3 bg-black/95 text-white text-xs rounded-lg shadow-2xl hover:bg-black/100 border border-white/10 group">
+            <div className="w-full h-28 mb-2 rounded border border-white/20 overflow-hidden relative">
+              <img src={hoverInfo.group[0].image_url} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+              {hoverInfo.group.length > 1 && (
+                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                   <span className="font-bold tracking-widest">+ {hoverInfo.group.length - 1} MORE</span>
+                 </div>
+              )}
+            </div>
+            <p className="font-medium leading-relaxed truncate">{hoverInfo.group[0].description}</p>
+            <div className="text-[10px] text-teal-400 mt-1 font-bold flex justify-between">
+              <span>CLICK TO VIEW GALLLERY</span>
+              {hoverInfo.group.length > 1 && <span>({hoverInfo.group.length} items)</span>}
+            </div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-black/95"></div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
