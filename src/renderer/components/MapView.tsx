@@ -287,6 +287,12 @@ function MapView({
     }
   }, [currentLocation?.longitude, currentLocation?.latitude, locationHistory.length])
 
+  useEffect(() => {
+    if (heatmapMode === 'heatmap') {
+      setViewState(prev => ({ ...prev, zoom: 17 }))
+    }
+  }, [heatmapMode])
+
   return (
     <DeckGL
       viewState={viewState}
