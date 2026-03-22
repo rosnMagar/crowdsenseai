@@ -5,6 +5,7 @@ import { HeatmapLayer } from '@deck.gl/aggregation-layers'
 import { Map } from 'react-map-gl/maplibre'
 import { LocationData, QuadrantDensity, DensityLevel } from '../types'
 import { WifiObservation } from '../services/wifiTracker'
+import { HeatmapPoint } from '../types/heatmap'
 import { useTheme } from '../contexts/ThemeContext'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
@@ -16,6 +17,7 @@ interface MapViewProps {
   heatmapOpacity?: number
   heatmapMode?: 'polygon' | 'heatmap'
   wifiObservations?: WifiObservation[]
+  wifiHeatmapData?: HeatmapPoint[]
 }
 
 const DENSITY_COLORS: Record<number, { fill: [number, number, number, number]; stroke: [number, number, number, number] }> = {
@@ -23,6 +25,32 @@ const DENSITY_COLORS: Record<number, { fill: [number, number, number, number]; s
   1: { fill: [34, 197, 94, 120], stroke: [34, 197, 94, 180] },
   2: { fill: [234, 179, 8, 160], stroke: [234, 179, 8, 200] },
   3: { fill: [239, 68, 68, 200], stroke: [239, 68, 68, 255] }
+}
+
+function signalToColor(signal: number): [number, number, number, number] {
+  const normalized = Math.min(100, Math.max(0, signal))
+  
+  const colors: [number, number, number][] = [
+    [255, 254, 240],  // 0   - White/Cream (Weak)
+    [255, 228, 196],  // 25  - Light tan
+    [212, 163, 115],  // 50  - Tan
+    [204, 119, 34],   // 75  - Dark amber
+    [255, 107, 53]    // 100 - Vibrant orange (Strong)
+  ]
+  
+  const segment = normalized / 25
+  const index = Math.min(4, Math.floor(segment))
+  const t = segment - index
+  
+  const c1 = colors[index]
+  const c2 = colors[Math.min(index + 1, 4)]
+  
+  return [
+    Math.round(c1[0] + (c2[0] - c1[0]) * t),
+    Math.round(c1[1] + (c2[1] - c1[1]) * t),
+    Math.round(c1[2] + (c2[2] - c1[2]) * t),
+    180
+  ]
 }
 
 const INITIAL_VIEW_STATE = {
@@ -40,7 +68,8 @@ function MapView({
   showHeatmap = false,
   heatmapOpacity = 0.6,
   heatmapMode = 'polygon',
-  wifiObservations = []
+  wifiObservations = [],
+  wifiHeatmapData = []
 }: MapViewProps) {
   const { theme } = useTheme()
   const [viewState, setViewState] = useState(() => ({ ...INITIAL_VIEW_STATE }))
@@ -113,101 +142,51 @@ function MapView({
       )
     }
 
-    if (showHeatmap && heatmapMode === 'heatmap' && wifiObservations.length > 0) {
-      const strongSignals = wifiObservations.filter(d => d.signalStrength > -45)
-      const mediumSignals = wifiObservations.filter(d => d.signalStrength > -60 && d.signalStrength <= -45)
-      const weakSignals = wifiObservations.filter(d => d.signalStrength <= -60)
-      
-      if (strongSignals.length > 0) {
+    if (showHeatmap && heatmapMode === 'heatmap') {
+      if (wifiHeatmapData.length > 0) {
+        const krigingPolygons = wifiHeatmapData.map(p => ({
+          polygon: [
+            [p.bounds.minLon, p.bounds.minLat],
+            [p.bounds.maxLon, p.bounds.minLat],
+            [p.bounds.maxLon, p.bounds.maxLat],
+            [p.bounds.minLon, p.bounds.maxLat],
+            [p.bounds.minLon, p.bounds.minLat]
+          ] as [number, number][],
+          signal: p.metadata?.signal as number ?? 0
+        }))
+
         layerList.push(
-          new HeatmapLayer<WifiObservation>({
-            id: 'wifi-heatmap-strong',
-            data: strongSignals,
+          new PolygonLayer({
+            id: 'kriging-grid-layer',
+            data: krigingPolygons,
             pickable: true,
-            getPosition: (d: WifiObservation) => [d.longitude, d.latitude],
-            getWeight: (d: WifiObservation) => Math.max(0, d.signalStrength + 100),
-            radiusPixels: 180,
-            intensity: 2.5,
-            threshold: 0.02,
-            colorRange: [
-              [255, 250, 240, 0],
-              [255, 245, 230, 10],
-              [255, 235, 200, 30],
-              [255, 220, 180, 60],
-              [255, 200, 150, 90],
-              [255, 180, 120, 120],
-              [255, 160, 100, 150]
-            ]
+            stroked: false,
+            filled: true,
+            getPolygon: (d: typeof krigingPolygons[0]) => d.polygon,
+            getFillColor: (d: typeof krigingPolygons[0]) => signalToColor(d.signal),
+            opacity: heatmapOpacity
           })
         )
       }
-      
-      if (mediumSignals.length > 0) {
+
+      if (wifiObservations.length > 0) {
         layerList.push(
-          new HeatmapLayer<WifiObservation>({
-            id: 'wifi-heatmap-medium',
-            data: mediumSignals,
-            pickable: true,
+          new ScatterplotLayer<WifiObservation>({
+            id: 'wifi-points-input',
+            data: wifiObservations,
             getPosition: (d: WifiObservation) => [d.longitude, d.latitude],
-            getWeight: (d: WifiObservation) => Math.max(0, d.signalStrength + 100),
-            radiusPixels: 100,
-            intensity: 2,
-            threshold: 0.05,
-            colorRange: [
-              [230, 200, 170, 0],
-              [220, 185, 150, 10],
-              [212, 163, 115, 30],
-              [195, 145, 100, 60],
-              [175, 125, 80, 90],
-              [155, 105, 60, 120],
-              [140, 90, 50, 150]
-            ]
+            getFillColor: [0, 255, 255, 255],
+            getLineColor: [0, 180, 180, 255],
+            getRadius: 6,
+            radiusMinPixels: 6,
+            radiusMaxPixels: 8,
+            lineWidthMinPixels: 2,
+            stroked: true,
+            pickable: true,
+            opacity: 1
           })
         )
       }
-      
-      if (weakSignals.length > 0) {
-        layerList.push(
-          new HeatmapLayer<WifiObservation>({
-            id: 'wifi-heatmap-weak',
-            data: weakSignals,
-            pickable: true,
-            getPosition: (d: WifiObservation) => [d.longitude, d.latitude],
-            getWeight: (d: WifiObservation) => Math.max(0, d.signalStrength + 100),
-            radiusPixels: 50,
-            intensity: 1.5,
-            threshold: 0.1,
-            colorRange: [
-              [140, 100, 70, 0],
-              [130, 90, 60, 5],
-              [120, 80, 50, 15],
-              [110, 75, 45, 25],
-              [100, 65, 40, 40],
-              [90, 55, 35, 60],
-              [80, 45, 30, 80]
-            ]
-          })
-        )
-      }
-      
-      layerList.push(
-        new ScatterplotLayer<WifiObservation>({
-          id: 'wifi-points',
-          data: wifiObservations,
-          getPosition: (d: WifiObservation) => [d.longitude, d.latitude],
-          getFillColor: (d: WifiObservation) => {
-            const signal = d.signalStrength
-            if (signal > -45) return [255, 235, 200, 255]
-            if (signal > -60) return [212, 163, 115, 255]
-            return [140, 90, 60, 255]
-          },
-          getRadius: 4,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 4,
-          pickable: true,
-          opacity: 1
-        })
-      )
     }
 
     if (pathData.length > 0) {
@@ -260,21 +239,40 @@ function MapView({
     }
 
     return layerList
-  }, [currentLocation, locationHistory, quadrantPolygons, showHeatmap, heatmapMode, wifiObservations, heatmapOpacity, themeColors, pathData])
+  }, [currentLocation, locationHistory, quadrantPolygons, showHeatmap, heatmapMode, wifiObservations, wifiHeatmapData, heatmapOpacity, themeColors, pathData])
 
   const onViewStateChange = useCallback((info: { viewState: Record<string, unknown> }) => {
-    const vs = info.viewState as typeof INITIAL_VIEW_STATE
-    if (vs.zoom !== undefined) {
-      const limits = heatmapMode === 'heatmap' 
-        ? { min: 17, max: 17 }
-        : { min: 14, max: 19 }
-      vs.zoom = Math.min(limits.max, Math.max(limits.min, vs.zoom))
-    }
-    setViewState(vs)
-  }, [heatmapMode])
+    setViewState(info.viewState as typeof INITIAL_VIEW_STATE)
+  }, [])
 
   const getCursor = useCallback(({ isHovering }: { isHovering: boolean }) => {
     return isHovering ? 'pointer' : 'grab'
+  }, [])
+
+  const getTooltip = useCallback(({ object }: { object?: WifiObservation | { signal: number } }) => {
+    if (!object) return null
+    
+    if ('signalStrength' in object) {
+      return {
+        html: `<div style="padding: 8px; background: rgba(0,0,0,0.85); border-radius: 6px; color: white; font-family: system-ui; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+          <strong style="font-size: 13px;">${object.ssid || 'Unknown Network'}</strong><br/>
+          <span style="color: #FF6B35; font-size: 16px; font-weight: bold;">${object.signalStrength} dBm</span><br/>
+          <span style="font-size: 10px; color: #aaa;">${object.bssid || 'N/A'}</span>
+        </div>`,
+        style: { backgroundColor: 'transparent', border: 'none', padding: '0' }
+      }
+    }
+    
+    if ('signal' in object) {
+      return {
+        html: `<div style="padding: 6px 10px; background: rgba(0,0,0,0.85); border-radius: 4px; color: white; font-family: system-ui;">
+          <span style="color: #FF6B35; font-weight: bold;">${Math.round(object.signal)}</span> signal
+        </div>`,
+        style: { backgroundColor: 'transparent', border: 'none', padding: '0' }
+      }
+    }
+    
+    return null
   }, [])
 
   useEffect(() => {
@@ -287,12 +285,6 @@ function MapView({
     }
   }, [currentLocation?.longitude, currentLocation?.latitude, locationHistory.length])
 
-  useEffect(() => {
-    if (heatmapMode === 'heatmap') {
-      setViewState(prev => ({ ...prev, zoom: 17 }))
-    }
-  }, [heatmapMode])
-
   return (
     <DeckGL
       viewState={viewState}
@@ -300,6 +292,7 @@ function MapView({
       controller={true}
       layers={layers}
       getCursor={getCursor}
+      getTooltip={getTooltip}
     >
       <Map
         mapStyle={mapStyle}
