@@ -4,7 +4,7 @@ const supabaseUrl = 'https://wwrsqzacdonvaqzwkpua.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3cnNxemFjZG9udmFxendrcHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMTYzOTUsImV4cCI6MjA4OTY5MjM5NX0.NprOO-a1y8_gAfgkBq0lI_73W9o0JWj1G4iiaGEejaI'
 
 const GRID_CONFIG = {
-  totalQuadrants: 96,
+  totalQuadrants: 384,
   bounds: {
     west: -92.586164,
     south: 40.179033,
@@ -14,8 +14,8 @@ const GRID_CONFIG = {
 }
 
 const BOUNDS = GRID_CONFIG.bounds
-const ROWS = 12
-const COLS = 8
+const ROWS = 24
+const COLS = 16
 
 function randomWeight(rows, cols) {
   return (Math.random() - 0.5) * 2 * Math.sqrt(2.0 / rows)
@@ -182,28 +182,71 @@ function getAllQuadrantIds() {
 async function trainAndSaveModel() {
   const supabase = createClient(supabaseUrl, supabaseKey)
   
-  console.log('Fetching training data...')
+  console.log('Fetching training data via REST API...')
   
   const cutoffDate = new Date()
   cutoffDate.setDate(cutoffDate.getDate() - 30)
   
-  const { data, error } = await supabase
-    .from('quadrant_data')
-    .select('*')
-    .eq('is_prediction', false)
-    .gte('timestamp', cutoffDate.toISOString())
+  let allData = []
+  let page = 1
+  const perPage = 1000
   
-  if (error || !data) {
-    console.error('Failed to fetch data:', error)
+  while (true) {
+    const offset = (page - 1) * perPage
+    const url = `${supabaseUrl}/rest/v1/quadrant_data?select=*&is_prediction=eq.false&timestamp=gte.${cutoffDate.toISOString()}&offset=${offset}&limit=${perPage}`
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'count=exact'
+      }
+    })
+    
+    if (!response.ok) {
+      console.error('Error fetching data:', response.status)
+      break
+    }
+    
+    const data = await response.json()
+    
+    if (!data || data.length === 0) {
+      break
+    }
+    
+    allData = allData.concat(data)
+    console.log(`Fetched ${allData.length} records...`)
+    
+    if (data.length < perPage) {
+      break
+    }
+    
+    page++
+    
+    if (page > 200) {
+      console.log('Reached max pages, stopping')
+      break
+    }
+  }
+  
+  const data = allData
+  
+  if (!data || data.length === 0) {
+    console.error('Failed to fetch data')
     return
   }
   
-  console.log(`Fetched ${data.length} records`)
+  console.log(`Total fetched: ${data.length} records`)
+  
+  const sampleRate = Math.ceil(data.length / 30000)
+  const sampledData = data.filter((_, i) => i % sampleRate === 0)
+  console.log(`Sampled to ${sampledData.length} records for training`)
   
   const qIds = getAllQuadrantIds()
   const trainingMap = new Map()
   
-  for (const obs of data) {
+  for (const obs of sampledData) {
     const timeKey = obs.hour_of_day * 7 + obs.day_of_week
     if (!trainingMap.has(obs.quadrant_id)) {
       trainingMap.set(obs.quadrant_id, new Map())
@@ -215,7 +258,7 @@ async function trainAndSaveModel() {
   const inputs = []
   const outputs = []
   
-  for (const obs of data) {
+  for (const obs of sampledData) {
     const features = new Array(GRID_CONFIG.totalQuadrants + 25).fill(0)
     features[obs.hour_of_day] = 1
     features[GRID_CONFIG.totalQuadrants + obs.day_of_week] = 1

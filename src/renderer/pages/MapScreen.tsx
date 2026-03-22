@@ -19,10 +19,8 @@ interface MapScreenProps {
   setTimeOffset?: (offset: number) => void
   getHeatmapAt?: (offset: number) => Map<string, DensityLevel>
   isAILoading?: boolean
-  confidence?: number
   trainingCountdown?: number
   lastUpdated?: Date | null
-  realTimeUsers?: Map<string, number>
 }
 
 const DENSITY_COLORS: Record<DensityLevel, string> = {
@@ -52,10 +50,8 @@ export default function MapScreen({
   setTimeOffset,
   getHeatmapAt,
   isAILoading = false,
-  confidence = 0,
   trainingCountdown,
-  lastUpdated,
-  realTimeUsers
+  lastUpdated
 }: MapScreenProps) {
   const { theme } = useTheme()
 
@@ -76,20 +72,13 @@ export default function MapScreen({
           quadrantId,
           density,
           bounds,
-          count: realTimeUsers?.get(quadrantId) || 0
+          count: 0
         })
       }
     })
     
     return qDensities
-  }, [getHeatmapAt, timeOffset, quadrants, realTimeUsers])
-
-  const totalUsers = useMemo(() => {
-    if (!realTimeUsers) return 0
-    let total = 0
-    realTimeUsers.forEach(count => total += count)
-    return total
-  }, [realTimeUsers])
+  }, [getHeatmapAt, timeOffset, quadrants])
 
   const densityCounts = useMemo(() => {
     const counts: Record<DensityLevel, number> = { 0: 0, 1: 0, 2: 0, 3: 0 }
@@ -163,12 +152,6 @@ export default function MapScreen({
                 ))}
               </div>
 
-              {confidence > 0 && (
-                <div className="text-xs text-slate-400">
-                  Confidence: <span className="text-tea-green">{Math.round(confidence * 100)}%</span>
-                </div>
-              )}
-
               {lastUpdated && (
                 <div className="text-xs text-slate-500 mt-1">
                   Updated: {lastUpdated.toLocaleTimeString()}
@@ -232,16 +215,6 @@ export default function MapScreen({
                 </div>
               </div>
             </div>
-
-            {showHeatmap && (
-              <div className={`mt-2 p-2 ${theme === 'dark' ? 'bg-dark-teal/30' : 'bg-tea-green/10'}`}>
-                <p className="text-[10px] uppercase mb-1 text-air-force-blue dark:text-tea-green">Active Users</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-xl font-bold text-bronze dark:text-ash-grey">{totalUsers}</span>
-                  <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">nearby</span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

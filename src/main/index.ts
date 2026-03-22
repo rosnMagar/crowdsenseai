@@ -4,6 +4,8 @@ import log from 'electron-log/main.js'
 
 app.commandLine.appendSwitch('no-sandbox')
 app.commandLine.appendSwitch('disable-setuid-sandbox')
+app.commandLine.appendSwitch('disable-gpu-sandbox')
+app.disableHardwareAcceleration()
 
 log.initialize()
 log.info('Application starting...')

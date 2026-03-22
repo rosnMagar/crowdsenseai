@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export interface APIQuadrant {
   id: string
@@ -90,7 +91,6 @@ export async function fetchRealTimeUsers(minutesBack: number = 5): Promise<RealT
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
     const cutoffTime = new Date(Date.now() - minutesBack * 60 * 1000).toISOString()
     
     const { data: sessions, error } = await supabase

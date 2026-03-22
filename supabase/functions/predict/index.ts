@@ -8,10 +8,34 @@ const BOUNDS = {
   north: 40.190088
 }
 
-const ROWS = 12
-const COLS = 8
+const ROWS = 24
+const COLS = 16
 
-const HOTSPOT_QUADRANTS = ['Q_3_3', 'Q_3_4', 'Q_4_3', 'Q_4_4', 'Q_5_3', 'Q_5_4', 'Q_4_5', 'Q_5_5']
+const CLASSROOM_COL = 3
+const CLASSROOM_ROWS = [10, 12, 14, 16, 18]
+const DORM_COL = 11
+const DORM_ROWS = [14, 15, 16, 17, 18, 19, 20, 21, 22]
+const FOOD_QUADRANTS = ['Q_14_11', 'Q_20_11']
+
+function isClassroom(qId: string): boolean {
+  const match = qId.match(/Q_(\d+)_(\d+)/)
+  if (!match) return false
+  const row = parseInt(match[1])
+  const col = parseInt(match[2])
+  return CLASSROOM_ROWS.includes(row) && col === CLASSROOM_COL
+}
+
+function isDorm(qId: string): boolean {
+  const match = qId.match(/Q_(\d+)_(\d+)/)
+  if (!match) return false
+  const row = parseInt(match[1])
+  const col = parseInt(match[2])
+  return DORM_ROWS.includes(row) && col === DORM_COL
+}
+
+function isFood(qId: string): boolean {
+  return FOOD_QUADRANTS.includes(qId)
+}
 
 interface QuadrantBounds {
   minLat: number
@@ -51,24 +75,55 @@ function getAllQuadrantIds(): string[] {
   return ids
 }
 
-function getHistoricalDensity(qId: string, hour: number): number {
-  const isHotspot = HOTSPOT_QUADRANTS.includes(qId)
-  
-  let baseDensity = 0.1
-  
-  if (hour >= 6 && hour <= 7) baseDensity = 0.2
-  else if (hour >= 8 && hour <= 10) baseDensity = 0.4
-  else if (hour >= 11 && hour <= 14) baseDensity = 0.55
-  else if (hour >= 15 && hour <= 17) baseDensity = 0.5
-  else if (hour >= 18 && hour <= 19) baseDensity = 0.35
-  else if (hour >= 20 && hour <= 22) baseDensity = 0.25
-  else if (hour >= 23 || hour <= 5) baseDensity = 0.1
-  
-  if (isHotspot) {
-    baseDensity = Math.min(0.65, baseDensity * 1.6)
+const BASE_WEEKDAY: Record<number, number> = {
+  0: 0.03, 1: 0.02, 2: 0.01, 3: 0.01, 4: 0.01, 5: 0.03,
+  6: 0.08, 7: 0.25, 8: 0.55, 9: 0.70, 10: 0.75, 11: 0.70,
+  12: 0.65, 13: 0.60, 14: 0.65, 15: 0.70, 16: 0.60, 17: 0.50,
+  18: 0.45, 19: 0.50, 20: 0.55, 21: 0.45, 22: 0.30, 23: 0.15
+}
+
+const BASE_WEEKEND: Record<number, number> = {
+  0: 0.05, 1: 0.03, 2: 0.02, 3: 0.01, 4: 0.01, 5: 0.01,
+  6: 0.02, 7: 0.03, 8: 0.08, 9: 0.20, 10: 0.40, 11: 0.60,
+  12: 0.70, 13: 0.75, 14: 0.70, 15: 0.65, 16: 0.55, 17: 0.45,
+  18: 0.40, 19: 0.45, 20: 0.50, 21: 0.55, 22: 0.45, 23: 0.30
+}
+
+const DORM_PATTERN: Record<number, number> = {
+  0: 0.60, 1: 0.70, 2: 0.75, 3: 0.80, 4: 0.75, 5: 0.65,
+  6: 0.50, 7: 0.35, 8: 0.25, 9: 0.20, 10: 0.20, 11: 0.25,
+  12: 0.30, 13: 0.25, 14: 0.25, 15: 0.30, 16: 0.35, 17: 0.45,
+  18: 0.50, 19: 0.55, 20: 0.60, 21: 0.65, 22: 0.70, 23: 0.65
+}
+
+const CLASSROOM_PATTERN: Record<number, number> = {
+  0: 0.01, 1: 0.01, 2: 0.01, 3: 0.01, 4: 0.01, 5: 0.02,
+  6: 0.05, 7: 0.15, 8: 0.60, 9: 0.85, 10: 0.90, 11: 0.85,
+  12: 0.80, 13: 0.75, 14: 0.80, 15: 0.85, 16: 0.75, 17: 0.55,
+  18: 0.20, 19: 0.10, 20: 0.08, 21: 0.05, 22: 0.03, 23: 0.02
+}
+
+const FOOD_PATTERN: Record<number, number> = {
+  0: 0.02, 1: 0.01, 2: 0.01, 3: 0.01, 4: 0.01, 5: 0.02,
+  6: 0.05, 7: 0.40, 8: 0.70, 9: 0.40, 10: 0.30, 11: 0.35,
+  12: 0.75, 13: 0.65, 14: 0.55, 15: 0.50, 16: 0.45, 17: 0.50,
+  18: 0.60, 19: 0.75, 20: 0.65, 21: 0.40, 22: 0.25, 23: 0.15
+}
+
+function getHistoricalDensity(qId: string, hour: number, dayOfWeek: number = 1): number {
+  if (isDorm(qId)) {
+    return DORM_PATTERN[hour]
   }
   
-  return baseDensity
+  if (isClassroom(qId)) {
+    return CLASSROOM_PATTERN[hour]
+  }
+  
+  if (isFood(qId)) {
+    return FOOD_PATTERN[hour]
+  }
+  
+  return BASE_WEEKDAY[hour] * 0.2
 }
 
 function getBlendWeight(minutesAhead: number): { current: number; historical: number } {
@@ -210,7 +265,12 @@ serve(async (req: Request) => {
           historicalDensity = Math.min(0.65, historicalDensity * (1 + Math.log10(count + 1) * 0.2))
         }
         
-        const blendedDensity = (currentDensity * blend.current) + (historicalDensity * blend.historical)
+        let blendedDensity: number
+        if (snapshotData.length === 0) {
+          blendedDensity = historicalDensity
+        } else {
+          blendedDensity = (currentDensity * blend.current) + (historicalDensity * blend.historical)
+        }
         
         return {
           id: qId,
