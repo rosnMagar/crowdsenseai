@@ -26,7 +26,3 @@ export function getWifiObservations(): WifiObservation[] {
 export function clearWifiObservations(): void {
   wifiObservations = []
 }
-
-export function generateObservationId(): string {
-  return `wifi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-}

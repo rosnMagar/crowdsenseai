@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { registerWifiData, getWifiIntensityHeatmapSource, WifiScanResult } from '../services/heatmapSources'
+import { getWifiIntensityHeatmapSource, WifiScanResult } from '../services/heatmapSources'
+import { uploadWifiData } from '../services/api'
 
 export interface WifiAccessPoint {
   bssid: string
@@ -130,13 +131,30 @@ export function useWifi(onRegisterSource?: (source: ReturnType<typeof getWifiInt
       setNetworks(formattedNetworks)
       setLastScanTime(new Date())
 
-      const wifiResults: WifiScanResult[] = formattedNetworks.map(n => ({
-        bssid: n.bssid,
-        ssid: n.ssid,
-        signal: n.signal,
-        quadrantId: `q_${n.channel}` 
-      }))
-      registerWifiData(wifiResults)
+      // Get current location to pair with WiFi data
+      let latitude = 0
+      let longitude = 0
+      try {
+        if (window.electronAPI?.getLocation) {
+          const loc = await window.electronAPI.getLocation()
+          latitude = loc.latitude
+          longitude = loc.longitude
+        }
+      } catch (locErr) {
+        console.warn('Could not fetch location for WiFi scan upload', locErr)
+      }
+
+      // Upload if we have valid coordinates
+      if (latitude !== 0 || longitude !== 0) {
+        const uploadData = formattedNetworks.map(n => ({
+          bssid: n.bssid,
+          ssid: n.ssid,
+          signal: n.signal,
+          latitude,
+          longitude
+        }))
+        uploadWifiData(uploadData)
+      }
 
       return formattedNetworks
     } catch (err) {

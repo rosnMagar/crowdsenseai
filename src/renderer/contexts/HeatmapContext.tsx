@@ -3,6 +3,7 @@ import { HeatmapSource, HeatmapPoint, HeatmapLayerConfig, DEFAULT_LAYER_CONFIG, 
 import { useAIPredictions } from '../hooks/useAIPredictions'
 import { WifiObservation } from '../services/wifiTracker'
 import { getWifiHeatmapPoints } from '../services/heatmapSources'
+import { fetchWifiData } from '../services/api'
 
 interface HeatmapContextValue {
   currentSourceId: string | null
@@ -154,6 +155,41 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
       registerSource(wifiSource)
     }
   }, [sources.size, registerSource, densityHeatmapData])
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>
+    
+    const loadRealWifiData = async () => {
+      try {
+        const data = await fetchWifiData(15)
+        if (data.length > 0) {
+          const formattedObs: WifiObservation[] = data.map((d, i) => ({
+            id: `db_${i}`,
+            latitude: d.latitude,
+            longitude: d.longitude,
+            signalStrength: d.signal,
+            ssid: d.ssid,
+            bssid: d.bssid,
+            frequency: 2400,
+            timestamp: Date.now()
+          }))
+          // Limit to a reasonable number of recent points to avoid performance issues
+          setWifiObservations(formattedObs.slice(-200))
+        }
+      } catch (err) {
+        console.error('Failed to fetch wifi data from DB', err)
+      }
+    }
+
+    if (currentSourceId === 'wifi-intensity') {
+      loadRealWifiData()
+      interval = setInterval(loadRealWifiData, 10000)
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [currentSourceId])
 
   const value: HeatmapContextValue = {
     currentSourceId,

@@ -7,7 +7,7 @@ import { useHeatmap } from '../contexts/HeatmapContext'
 import { useWifiSignal } from '../contexts/WifiContext'
 import { LocationData, QuadrantDensity, DensityLevel } from '../types'
 import { quadrantToLatLon } from '../services/grid'
-import { addWifiObservation, generateObservationId, WifiObservation } from '../services/wifiTracker'
+import { addWifiObservation, WifiObservation } from '../services/wifiTracker'
 import { generateDummyWifiObservations } from '../services/dummyData'
 
 type MapMode = "activity" | "wifi";
@@ -107,7 +107,7 @@ export default function MapScreen({
         results.forEach(network => {
           if (typeof network.signal === 'number' && !isNaN(network.signal)) {
             const obs: WifiObservation = {
-              id: generateObservationId(),
+              id: `wifi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               latitude: loc.latitude,
               longitude: loc.longitude,
               signalStrength: network.signal,

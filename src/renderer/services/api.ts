@@ -157,3 +157,60 @@ export function userCountToDensityLevel(userCount: number): DensityLevel {
 export function densityToLevel(density: number): DensityLevel {
   return Math.min(3, Math.max(0, Math.floor(density))) as DensityLevel
 }
+
+export interface WifiUploadData {
+  bssid: string
+  ssid: string
+  signal: number
+  latitude: number
+  longitude: number
+}
+
+export async function uploadWifiData(data: WifiUploadData[]): Promise<void> {
+  if (!supabaseUrl || !supabaseAnonKey || data.length === 0) return
+
+  try {
+    const formattedData = data.map(d => ({
+      bssid: d.bssid,
+      ssid: d.ssid,
+      signal_strength: d.signal,
+      latitude: d.latitude,
+      longitude: d.longitude
+    }))
+
+    const { error } = await supabase.from('wifi_observations').insert(formattedData)
+    if (error) {
+      console.error('Failed to upload WiFi data:', error)
+    }
+  } catch (error) {
+    console.error('Error uploading WiFi data:', error)
+  }
+}
+
+export async function fetchWifiData(minutesBack: number = 15): Promise<WifiUploadData[]> {
+  if (!supabaseUrl || !supabaseAnonKey) return []
+
+  try {
+    const cutoffTime = new Date(Date.now() - minutesBack * 60 * 1000).toISOString()
+    const { data, error } = await supabase
+      .from('wifi_observations')
+      .select('bssid, ssid, signal_strength, latitude, longitude')
+      .gte('collected_at', cutoffTime)
+
+    if (error) {
+      console.error('Failed to fetch WiFi data:', error)
+      return []
+    }
+
+    return (data as any[]).map(d => ({
+      bssid: d.bssid,
+      ssid: d.ssid,
+      signal: d.signal_strength,
+      latitude: d.latitude,
+      longitude: d.longitude
+    }))
+  } catch (error) {
+    console.error('Error fetching WiFi data:', error)
+    return []
+  }
+}
