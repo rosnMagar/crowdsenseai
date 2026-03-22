@@ -7,7 +7,7 @@ import { useHeatmap } from "../contexts/HeatmapContext";
 import { LocationData, QuadrantDensity, DensityLevel } from "../types";
 import { quadrantToLatLon } from "../services/grid";
 
-type MapMode = "off" | "activity" | "wifi";
+type MapMode = "activity" | "wifi";
 
 interface MapScreenProps {
   location: LocationData | null;
@@ -69,14 +69,12 @@ export default function MapScreen({
 }: MapScreenProps) {
   const { theme } = useTheme();
   const { setCurrentSource, currentSourceId } = useHeatmap();
-  const [currentMode, setCurrentMode] = useState<MapMode>("off");
+  const [currentMode, setCurrentMode] = useState<MapMode>("activity");
 
   const handleModeChange = useCallback(
     (mode: MapMode) => {
       setCurrentMode(mode);
-      if (mode === "off") {
-        // HeatmapProvider handles this via showHeatmap
-      } else if (mode === "activity") {
+      if (mode === "activity") {
         setCurrentSource("density");
       } else if (mode === "wifi") {
         setCurrentSource("wifi-intensity");
@@ -133,11 +131,6 @@ export default function MapScreen({
 
   const getModeButtonStyle = (mode: MapMode) => {
     const isActive = currentMode === mode;
-    if (mode === "off") {
-      return isActive
-        ? "bg-gray-500/30 text-gray-300 border border-gray-500/50"
-        : "bg-dark-teal/20 text-air-force-blue border border-dark-teal/30 hover:bg-dark-teal/30";
-    }
     return isActive
       ? "bg-teal-500/30 text-tea-green border border-teal-500/50"
       : "bg-dark-teal/20 text-air-force-blue border border-dark-teal/30 hover:bg-dark-teal/30";
@@ -153,12 +146,12 @@ export default function MapScreen({
             currentLocation={location}
             locationHistory={locationHistory}
             heatmapQuadrants={displayQuadrants}
-            showHeatmap={currentMode !== "off"}
+            showHeatmap={true}
             heatmapOpacity={0.6}
           />
         </div>
 
-        {currentMode !== "off" && currentMode === "activity" && (
+        {currentMode === "activity" && (
           <div className="absolute top-4 left-4 z-20">
             <div
               className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
@@ -214,7 +207,7 @@ export default function MapScreen({
           </div>
         )}
 
-        {currentMode !== "off" && currentMode === "wifi" && (
+        {currentMode === "wifi" && (
           <div className="absolute top-4 left-4 z-20">
             <div
               className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
@@ -365,12 +358,6 @@ export default function MapScreen({
                 className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle("wifi")}`}
               >
                 Signal
-              </button>
-              <button
-                onClick={() => handleModeChange("off")}
-                className={`px-3 py-1.5 text-xs font-medium transition-all ${getModeButtonStyle("off")}`}
-              >
-                Off
               </button>
             </div>
 

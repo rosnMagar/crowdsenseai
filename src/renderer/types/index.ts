@@ -3,6 +3,7 @@ export interface LocationData {
   longitude: number
   accuracy: number
   timestamp: number
+  wifiSignal?: number
 }
 
 export interface AccessPoint {

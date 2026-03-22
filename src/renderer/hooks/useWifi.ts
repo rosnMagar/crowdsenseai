@@ -21,17 +21,35 @@ export interface WifiStats {
 
 declare global {
   interface Window {
-    electronAPI: {
-      getLocation: () => Promise<unknown>
+    electronAPI?: {
+      getLocation: () => Promise<LocationDataWifi>
       log: (level: string, message: string) => void
-      onLocationUpdate: (callback: (location: unknown) => void) => void
+      onLocationUpdate: (callback: (location: LocationDataWifi) => void) => void
       wifi: {
-        scan: () => Promise<WifiScanResult[]>
-        getCurrentConnections: () => Promise<WifiScanResult[]>
+        scan: () => Promise<WifiAccessPoint[]>
+        getCurrentConnections: () => Promise<WifiAccessPoint[]>
         getSignalStrength: () => Promise<number>
       }
     }
   }
+}
+
+export interface LocationDataWifi {
+  latitude: number
+  longitude: number
+  accuracy: number
+  timestamp: number
+  wifiSignal?: number
+}
+
+export interface WifiAccessPoint {
+  bssid: string
+  ssid: string
+  signal: number
+  channel: number
+  frequency: number
+  quality: number
+  security: string
 }
 
 const SCAN_INTERVAL = 10000

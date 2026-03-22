@@ -2,26 +2,17 @@ import { useEffect, useState } from 'react'
 import Header from '../components/Header'
 import { useTheme } from '../contexts/ThemeContext'
 import { useHeatmap } from '../contexts/HeatmapContext'
+import { WifiAccessPoint } from '../hooks/useWifi'
 
 interface InsightsScreenProps {
   onNavigate?: (page: string) => void
 }
 
-interface WifiConnection {
-  ssid: string
-  bssid: string
-  signal: number
-  channel: number
-  frequency: number
-  quality: number
-  security: string
-}
-
 export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
   const { theme } = useTheme()
   const { registerSource } = useHeatmap()
-  const [connection, setConnection] = useState<WifiConnection | null>(null)
-  const [networks, setNetworks] = useState<WifiConnection[]>([])
+  const [connection, setConnection] = useState<WifiAccessPoint | null>(null)
+  const [networks, setNetworks] = useState<WifiAccessPoint[]>([])
   const [isScanning, setIsScanning] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -300,16 +291,4 @@ export default function InsightsScreen({ onNavigate }: InsightsScreenProps) {
       </main>
     </div>
   )
-}
-
-declare global {
-  interface Window {
-    electronAPI: {
-      wifi: {
-        scan: () => Promise<WifiConnection[]>
-        getCurrentConnections: () => Promise<WifiConnection[]>
-        getSignalStrength: () => Promise<number>
-      }
-    }
-  }
 }

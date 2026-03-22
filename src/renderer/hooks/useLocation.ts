@@ -1,8 +1,8 @@
 import { useTrackingContext } from '../contexts/TrackingContext'
-import { LocationData } from '../types'
+import { LocationDataWifi } from './useWifi'
 
 interface UseLocationReturn {
-  location: LocationData | null
+  location: LocationDataWifi | null
   error: string | null
   isTracking: boolean
   startTracking: () => void

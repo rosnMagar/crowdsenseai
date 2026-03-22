@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
-import { LocationData } from '../types'
+import { LocationDataWifi } from '../hooks/useWifi'
 
 interface TrackingContextType {
-  location: LocationData | null
+  location: LocationDataWifi | null
   error: string | null
   isTracking: boolean
   startTracking: () => void
@@ -19,7 +19,7 @@ interface TrackingProviderProps {
 }
 
 export function TrackingProvider({ children }: TrackingProviderProps) {
-  const [location, setLocation] = useState<LocationData | null>(null)
+  const [location, setLocation] = useState<LocationDataWifi | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isTracking, setIsTracking] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -28,7 +28,8 @@ export function TrackingProvider({ children }: TrackingProviderProps) {
     try {
       if (window.electronAPI) {
         const data = await window.electronAPI.getLocation()
-        setLocation(data)
+        const wifiSignal = await window.electronAPI.wifi.getSignalStrength()
+        setLocation({ ...data, wifiSignal: wifiSignal || -100 })
         setError(null)
       } else {
         setError('Electron API not available')
