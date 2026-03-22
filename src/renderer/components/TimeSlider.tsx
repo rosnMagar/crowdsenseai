@@ -51,9 +51,6 @@ export default function TimeSlider({
   const trackClass = theme === 'dark'
     ? 'bg-ink-black/30'
     : 'bg-beige'
-  const thumbClass = theme === 'dark'
-    ? 'bg-bronze'
-    : 'bg-dark-teal'
   const tickClass = theme === 'dark'
     ? 'text-air-force-blue/50'
     : 'text-dark-teal/50'
@@ -75,17 +72,33 @@ export default function TimeSlider({
           step={step}
           value={value}
           onChange={handleChange}
-          className={`w-full h-2 ${trackClass} rounded-lg appearance-none cursor-pointer
-            [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-4
-            [&::-webkit-slider-thumb]:h-4
-            [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:${thumbClass}
-            [&::-webkit-slider-thumb]:cursor-pointer
-            [&::-webkit-slider-thumb]:shadow-lg
-            [&::-webkit-slider-thumb]:transition-transform
-            [&::-webkit-slider-thumb]:hover:scale-110`}
+          className={`w-full h-2 ${trackClass} rounded-lg appearance-none cursor-pointer`}
+          style={{
+            backgroundColor: 'transparent',
+          }}
         />
+        <style>{`
+          input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: ${theme === 'dark' ? '#D4A373' : '#2D5A4A'};
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: transform 0.15s ease;
+            margin-top: -6px;
+          }
+          input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+          }
+          input[type="range"]::-webkit-slider-runnable-track {
+            height: 4px;
+            border-radius: 2px;
+            background: ${theme === 'dark' ? 'rgba(15, 23, 42, 0.3)' : '#E8DDD4'};
+          }
+        `}</style>
         
         <div className="flex justify-between mt-1 px-1">
           <span className={`text-[10px] ${tickClass}`}>Now</span>
