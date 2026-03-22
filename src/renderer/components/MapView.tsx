@@ -3,7 +3,7 @@ import DeckGL from '@deck.gl/react'
 import { ScatterplotLayer, PathLayer } from '@deck.gl/layers'
 import { HeatmapLayer } from '@deck.gl/aggregation-layers'
 import { Map } from 'react-map-gl/maplibre'
-import { LocationData } from '../types'
+import { LocationData, QuadrantDensity } from '../types'
 import { useTheme } from '../contexts/ThemeContext'
 import { useHeatmap } from '../contexts/HeatmapContext'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -11,6 +11,9 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 interface MapViewProps {
   currentLocation: LocationData | null
   locationHistory: LocationData[]
+  heatmapQuadrants?: QuadrantDensity[]
+  showHeatmap?: boolean
+  heatmapOpacity?: number
 }
 
 const INITIAL_VIEW_STATE = {
@@ -23,7 +26,10 @@ const INITIAL_VIEW_STATE = {
 
 export default function MapView({ 
   currentLocation, 
-  locationHistory
+  locationHistory,
+  heatmapQuadrants = [],
+  showHeatmap = false,
+  heatmapOpacity = 0.6
 }: MapViewProps) {
   const { theme } = useTheme()
   const { heatmapData, layerConfig, getCurrentSource } = useHeatmap()
@@ -31,11 +37,16 @@ export default function MapView({
 
   const currentSource = getCurrentSource()
   const colorScheme = currentSource?.colorScheme || [
-    [50, 50, 50],
-    [56, 189, 248],
-    [251, 191, 36],
-    [239, 68, 68]
+    [50, 50, 50, 255],
+    [56, 189, 248, 255],
+    [251, 191, 36, 255],
+    [239, 68, 68, 255]
   ]
+
+  const contextData = heatmapData
+  const displayData = contextData.length > 0 ? contextData : heatmapQuadrants
+  const actualOpacity = layerConfig.opacity !== 0.6 ? layerConfig.opacity : heatmapOpacity
+  const shouldShowHeatmap = showHeatmap || contextData.length > 0
 
   const pathColor = theme === 'dark' 
     ? [174, 195, 176, 180] as [number, number, number, number]
@@ -52,24 +63,28 @@ export default function MapView({
   const layers = useMemo(() => {
     const layerList = []
 
-    if (heatmapData.length > 0) {
+    if (shouldShowHeatmap && displayData.length > 0) {
       layerList.push(
         new HeatmapLayer({
           id: 'heatmap-layer',
-          data: heatmapData,
+          data: displayData,
           pickable: false,
-          getPosition: d => [d[0], d[1]],
-          getWeight: d => d[2],
-          radiusPixels: 120,
-          intensity: 1,
-          threshold: 0.03,
-          colorRange: [
-            [212, 163, 115, 15],
-            [212, 163, 115, 60],
-            [212, 163, 115, 130],
-            [212, 163, 115, 220]
-          ],
-          opacity: heatmapOpacity
+          getPosition: d => {
+            if ('bounds' in d) {
+              return [(d as { bounds: { centerLon: number; centerLat: number } }).bounds.centerLon, (d as { bounds: { centerLon: number; centerLat: number } }).bounds.centerLat]
+            }
+            return [(d as unknown as { longitude: number; latitude: number }).longitude, (d as unknown as { longitude: number; latitude: number }).latitude]
+          },
+          getWeight: d => {
+            if ('value' in d) return (d as { value: number }).value
+            if ('density' in d) return ((d as { density: number }).density + 1) / 4
+            return 1
+          },
+          radiusPixels: layerConfig.radiusPixels,
+          intensity: layerConfig.intensity,
+          threshold: layerConfig.threshold,
+          colorRange: colorScheme,
+          opacity: actualOpacity
         })
       )
     }
@@ -124,7 +139,7 @@ export default function MapView({
     }
 
     return layerList
-  }, [currentLocation, locationHistory, heatmapData, layerConfig, colorScheme, theme, pathColor, currentColor, historyColor])
+  }, [currentLocation, locationHistory, displayData, shouldShowHeatmap, layerConfig, colorScheme, actualOpacity, theme, pathColor, currentColor, historyColor])
 
   useMemo(() => {
     if (currentLocation && locationHistory.length === 1) {

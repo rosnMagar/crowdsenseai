@@ -101,18 +101,19 @@ export function HeatmapProvider({ children }: HeatmapProviderProps) {
   const getCurrentSource = useCallback(() => currentSource, [currentSource])
 
   useEffect(() => {
-    const qIds = getAllQuadrantIds()
-    const defaultDensitySource: HeatmapSource = {
-      id: 'density',
-      name: 'Crowd Density',
-      description: 'AI-predicted crowd density based on historical patterns',
-      colorScheme: [[50, 50, 50], [56, 189, 248], [251, 191, 36], [239, 68, 68]],
-      icon: 'users',
-      getData: () => densityHeatmapData
+    if (sources.size === 0) {
+      const defaultDensitySource: HeatmapSource = {
+        id: 'density',
+        name: 'Crowd Density',
+        description: 'AI-predicted crowd density based on historical patterns',
+        colorScheme: [[50, 50, 50, 255], [56, 189, 248, 255], [251, 191, 36, 255], [239, 68, 68, 255]],
+        icon: 'users',
+        getData: () => densityHeatmapData
+      }
+      
+      registerSource(defaultDensitySource)
     }
-    
-    registerSource(defaultDensitySource)
-  }, [registerSource, densityHeatmapData])
+  }, [sources.size, registerSource, densityHeatmapData])
 
   const value: HeatmapContextValue = {
     currentSourceId,
