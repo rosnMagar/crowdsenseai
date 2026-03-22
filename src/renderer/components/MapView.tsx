@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import DeckGL from '@deck.gl/react'
 import { ScatterplotLayer, PathLayer, PolygonLayer } from '@deck.gl/layers'
+import { HeatmapLayer } from '@deck.gl/aggregation-layers'
 import { Map } from 'react-map-gl/maplibre'
 import { LocationData, QuadrantDensity, DensityLevel } from '../types'
+import { WifiObservation } from '../services/wifiTracker'
 import { useTheme } from '../contexts/ThemeContext'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
@@ -12,6 +14,8 @@ interface MapViewProps {
   heatmapQuadrants?: QuadrantDensity[]
   showHeatmap?: boolean
   heatmapOpacity?: number
+  heatmapMode?: 'polygon' | 'heatmap'
+  wifiObservations?: WifiObservation[]
 }
 
 const DENSITY_COLORS: Record<number, { fill: [number, number, number, number]; stroke: [number, number, number, number] }> = {
@@ -22,55 +26,75 @@ const DENSITY_COLORS: Record<number, { fill: [number, number, number, number]; s
 }
 
 const INITIAL_VIEW_STATE = {
-  longitude: -92.5814,
-  latitude: 40.1845,
-  zoom: 15,
+  longitude: -92.5805,
+  latitude: 40.1882,
+  zoom: 15.5,
   pitch: 45,
   bearing: 0
 }
 
-export default function MapView({ 
+function MapView({ 
   currentLocation, 
   locationHistory,
   heatmapQuadrants = [],
   showHeatmap = false,
-  heatmapOpacity = 0.6
+  heatmapOpacity = 0.6,
+  heatmapMode = 'polygon',
+  wifiObservations = []
 }: MapViewProps) {
   const { theme } = useTheme()
-  const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
+  const [viewState, setViewState] = useState(() => ({ ...INITIAL_VIEW_STATE }))
 
-  const pathColor = theme === 'dark' 
-    ? [174, 195, 176, 180] as [number, number, number, number]
-    : [212, 163, 115, 180] as [number, number, number, number]
-  
-  const currentColor = theme === 'dark'
-    ? [174, 195, 176, 255] as [number, number, number, number]
-    : [212, 163, 115, 255] as [number, number, number, number]
-  
-  const historyColor = theme === 'dark'
-    ? [88, 131, 146, 180] as [number, number, number, number]
-    : [125, 180, 160, 180] as [number, number, number, number]
+  const themeColors = useMemo(() => {
+    if (theme === 'dark') {
+      return {
+        path: [174, 195, 176, 180] as [number, number, number, number],
+        current: [174, 195, 176, 255] as [number, number, number, number],
+        history: [88, 131, 146, 180] as [number, number, number, number]
+      }
+    }
+    return {
+      path: [212, 163, 115, 180] as [number, number, number, number],
+      current: [212, 163, 115, 255] as [number, number, number, number],
+      history: [125, 180, 160, 180] as [number, number, number, number]
+    }
+  }, [theme])
 
-  const getQuadrantPolygon = (q: QuadrantDensity) => {
-    return [
-      [q.bounds.minLon, q.bounds.minLat],
-      [q.bounds.maxLon, q.bounds.minLat],
-      [q.bounds.maxLon, q.bounds.maxLat],
-      [q.bounds.minLon, q.bounds.maxLat],
-      [q.bounds.minLon, q.bounds.minLat]
-    ]
-  }
+  const mapStyle = useMemo(() => 
+    theme === 'dark'
+      ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+      : 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    [theme]
+  )
 
-  const quadrantPolygons = heatmapQuadrants.map(q => ({
-    polygon: getQuadrantPolygon(q),
-    density: q.density,
-    quadrantId: q.quadrantId
-  }))
+  const quadrantPolygons = useMemo(() => {
+    return heatmapQuadrants.map(q => ({
+      polygon: [
+        [q.bounds.minLon, q.bounds.minLat],
+        [q.bounds.maxLon, q.bounds.minLat],
+        [q.bounds.maxLon, q.bounds.maxLat],
+        [q.bounds.minLon, q.bounds.maxLat],
+        [q.bounds.minLon, q.bounds.minLat]
+      ] as [number, number][],
+      density: q.density,
+      quadrantId: q.quadrantId
+    }))
+  }, [heatmapQuadrants])
+
+  const pathData = useMemo(() => {
+    if (locationHistory.length > 1) {
+      return [{ path: locationHistory.map(loc => [loc.longitude, loc.latitude] as [number, number]) }]
+    }
+    return []
+  }, [locationHistory])
+
+  const nowRef = useRef(0)
+  nowRef.current = Date.now()
 
   const layers = useMemo(() => {
-    const layerList = []
+    const layerList: any[] = []
 
-    if (showHeatmap && quadrantPolygons.length > 0) {
+    if (showHeatmap && heatmapMode === 'polygon' && quadrantPolygons.length > 0) {
       layerList.push(
         new PolygonLayer({
           id: 'quadrant-layer',
@@ -89,13 +113,110 @@ export default function MapView({
       )
     }
 
-    if (locationHistory.length > 1) {
+    if (showHeatmap && heatmapMode === 'heatmap' && wifiObservations.length > 0) {
+      const strongSignals = wifiObservations.filter(d => d.signalStrength > -45)
+      const mediumSignals = wifiObservations.filter(d => d.signalStrength > -60 && d.signalStrength <= -45)
+      const weakSignals = wifiObservations.filter(d => d.signalStrength <= -60)
+      
+      if (strongSignals.length > 0) {
+        layerList.push(
+          new HeatmapLayer<WifiObservation>({
+            id: 'wifi-heatmap-strong',
+            data: strongSignals,
+            pickable: true,
+            getPosition: (d: WifiObservation) => [d.longitude, d.latitude],
+            getWeight: (d: WifiObservation) => Math.max(0, d.signalStrength + 100),
+            radiusPixels: 180,
+            intensity: 2.5,
+            threshold: 0.02,
+            colorRange: [
+              [255, 250, 240, 0],
+              [255, 245, 230, 10],
+              [255, 235, 200, 30],
+              [255, 220, 180, 60],
+              [255, 200, 150, 90],
+              [255, 180, 120, 120],
+              [255, 160, 100, 150]
+            ]
+          })
+        )
+      }
+      
+      if (mediumSignals.length > 0) {
+        layerList.push(
+          new HeatmapLayer<WifiObservation>({
+            id: 'wifi-heatmap-medium',
+            data: mediumSignals,
+            pickable: true,
+            getPosition: (d: WifiObservation) => [d.longitude, d.latitude],
+            getWeight: (d: WifiObservation) => Math.max(0, d.signalStrength + 100),
+            radiusPixels: 100,
+            intensity: 2,
+            threshold: 0.05,
+            colorRange: [
+              [230, 200, 170, 0],
+              [220, 185, 150, 10],
+              [212, 163, 115, 30],
+              [195, 145, 100, 60],
+              [175, 125, 80, 90],
+              [155, 105, 60, 120],
+              [140, 90, 50, 150]
+            ]
+          })
+        )
+      }
+      
+      if (weakSignals.length > 0) {
+        layerList.push(
+          new HeatmapLayer<WifiObservation>({
+            id: 'wifi-heatmap-weak',
+            data: weakSignals,
+            pickable: true,
+            getPosition: (d: WifiObservation) => [d.longitude, d.latitude],
+            getWeight: (d: WifiObservation) => Math.max(0, d.signalStrength + 100),
+            radiusPixels: 50,
+            intensity: 1.5,
+            threshold: 0.1,
+            colorRange: [
+              [140, 100, 70, 0],
+              [130, 90, 60, 5],
+              [120, 80, 50, 15],
+              [110, 75, 45, 25],
+              [100, 65, 40, 40],
+              [90, 55, 35, 60],
+              [80, 45, 30, 80]
+            ]
+          })
+        )
+      }
+      
+      layerList.push(
+        new ScatterplotLayer<WifiObservation>({
+          id: 'wifi-points',
+          data: wifiObservations,
+          getPosition: (d: WifiObservation) => [d.longitude, d.latitude],
+          getFillColor: (d: WifiObservation) => {
+            const signal = d.signalStrength
+            if (signal > -45) return [255, 235, 200, 255]
+            if (signal > -60) return [212, 163, 115, 255]
+            return [140, 90, 60, 255]
+          },
+          getRadius: 4,
+          radiusMinPixels: 4,
+          radiusMaxPixels: 4,
+          pickable: true,
+          opacity: 1
+        })
+      )
+    }
+
+    if (pathData.length > 0) {
       layerList.push(
         new PathLayer({
           id: 'path-layer',
-          data: [{ path: locationHistory.map(loc => [loc.longitude, loc.latitude]) }],
+          data: pathData,
           getPath: d => d.path,
-          getColor: pathColor,
+          getColor: themeColors.path,
           getWidth: 4,
           widthMinPixels: 2,
           capRounded: true,
@@ -110,7 +231,7 @@ export default function MapView({
           id: 'current-location',
           data: [currentLocation],
           getPosition: d => [d.longitude, d.latitude],
-          getFillColor: currentColor,
+          getFillColor: themeColors.current,
           getRadius: 30,
           radiusMinPixels: 4,
           radiusMaxPixels: 10,
@@ -126,9 +247,9 @@ export default function MapView({
           data: locationHistory,
           getPosition: d => [d.longitude, d.latitude],
           getFillColor: d => {
-            const age = Date.now() - d.timestamp
+            const age = nowRef.current - d.timestamp
             const alpha = Math.max(80, 200 - age / 100)
-            return [...historyColor.slice(0, 3) as [number, number, number], alpha] as [number, number, number, number]
+            return [themeColors.history[0], themeColors.history[1], themeColors.history[2], alpha] as [number, number, number, number]
           },
           getRadius: 50,
           radiusMinPixels: 3,
@@ -139,9 +260,24 @@ export default function MapView({
     }
 
     return layerList
-  }, [currentLocation, locationHistory, quadrantPolygons, showHeatmap, heatmapOpacity, theme])
+  }, [currentLocation, locationHistory, quadrantPolygons, showHeatmap, heatmapMode, wifiObservations, heatmapOpacity, themeColors, pathData])
 
-  useMemo(() => {
+  const onViewStateChange = useCallback((info: { viewState: Record<string, unknown> }) => {
+    const vs = info.viewState as typeof INITIAL_VIEW_STATE
+    if (vs.zoom !== undefined) {
+      const limits = heatmapMode === 'heatmap' 
+        ? { min: 17, max: 17 }
+        : { min: 14, max: 19 }
+      vs.zoom = Math.min(limits.max, Math.max(limits.min, vs.zoom))
+    }
+    setViewState(vs)
+  }, [heatmapMode])
+
+  const getCursor = useCallback(({ isHovering }: { isHovering: boolean }) => {
+    return isHovering ? 'pointer' : 'grab'
+  }, [])
+
+  useEffect(() => {
     if (currentLocation && locationHistory.length === 1) {
       setViewState(prev => ({
         ...prev,
@@ -149,19 +285,21 @@ export default function MapView({
         latitude: currentLocation.latitude
       }))
     }
-  }, [currentLocation, locationHistory.length])
+  }, [currentLocation?.longitude, currentLocation?.latitude, locationHistory.length])
 
-  const mapStyle = theme === 'dark'
-    ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
-    : 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+  useEffect(() => {
+    if (heatmapMode === 'heatmap') {
+      setViewState(prev => ({ ...prev, zoom: 17 }))
+    }
+  }, [heatmapMode])
 
   return (
     <DeckGL
       viewState={viewState}
-      onViewStateChange={({ viewState }) => setViewState(viewState as typeof INITIAL_VIEW_STATE)}
+      onViewStateChange={onViewStateChange}
       controller={true}
       layers={layers}
-      getCursor={({ isHovering }) => isHovering ? 'pointer' : 'grab'}
+      getCursor={getCursor}
     >
       <Map
         mapStyle={mapStyle}
@@ -170,3 +308,5 @@ export default function MapView({
     </DeckGL>
   )
 }
+
+export default React.memo(MapView)
