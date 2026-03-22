@@ -1,8 +1,10 @@
 import { useTheme } from '../contexts/ThemeContext'
 
+type Page = 'map' | 'insights' | 'history' | 'settings'
+
 interface HeaderProps {
   title: string
-  onNavigate?: (page: string) => void
+  onNavigate?: (page: Page) => void
 }
 
 export default function Header({ title, onNavigate }: HeaderProps) {

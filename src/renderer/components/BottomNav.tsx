@@ -1,12 +1,14 @@
+type Page = 'map' | 'insights' | 'history' | 'settings'
+
 interface NavItem {
-  id: string
+  id: Page
   icon: string
   label: string
 }
 
 interface BottomNavProps {
-  currentPage: string
-  onNavigate: (page: string) => void
+  currentPage: Page
+  onNavigate: (page: Page) => void
 }
 
 export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {

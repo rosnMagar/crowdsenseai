@@ -1,23 +1,116 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import MapView from '../components/MapView'
 import Header from '../components/Header'
+import TimeSlider from '../components/TimeSlider'
 import { useTheme } from '../contexts/ThemeContext'
-import { LocationData } from '../types'
+import { LocationData, QuadrantDensity, DensityLevel } from '../types'
+import { quadrantToLatLon } from '../services/grid'
 
 interface MapScreenProps {
   location: LocationData | null
   locationHistory: LocationData[]
   isTracking: boolean
   onToggleTracking: () => void
-  onNavigate?: (page: string) => void
+  onNavigate?: (page: 'map' | 'insights' | 'history' | 'settings') => void
+  quadrants?: QuadrantDensity[]
+  showHeatmap?: boolean
+  setShowHeatmap?: (show: boolean) => void
+  timeOffset?: number
+  setTimeOffset?: (offset: number) => void
+  getHeatmapAt?: (offset: number) => Map<string, DensityLevel>
+  isAILoading?: boolean
+  confidence?: number
+  trainingCountdown?: number
+  lastUpdated?: Date | null
+  realTimeUsers?: Map<string, number>
 }
 
-export default function MapScreen({ location, locationHistory, isTracking, onToggleTracking, onNavigate }: MapScreenProps) {
+const DENSITY_COLORS: Record<DensityLevel, string> = {
+  0: 'text-slate-500',
+  1: 'text-sky-400',
+  2: 'text-amber-400',
+  3: 'text-red-500'
+}
+
+const DENSITY_LABELS: Record<DensityLevel, string> = {
+  0: 'Empty',
+  1: 'Low',
+  2: 'Medium',
+  3: 'High'
+}
+
+export default function MapScreen({ 
+  location, 
+  locationHistory, 
+  isTracking, 
+  onToggleTracking, 
+  onNavigate,
+  quadrants = [],
+  showHeatmap = false,
+  setShowHeatmap,
+  timeOffset = 0,
+  setTimeOffset,
+  getHeatmapAt,
+  isAILoading = false,
+  confidence = 0,
+  trainingCountdown,
+  lastUpdated,
+  realTimeUsers
+}: MapScreenProps) {
   const { theme } = useTheme()
 
   const handleStartTracking = useCallback(() => {
     onToggleTracking()
   }, [onToggleTracking])
+
+  const displayQuadrants = useMemo(() => {
+    if (!getHeatmapAt) return quadrants
+    
+    const densityMap = getHeatmapAt(timeOffset)
+    const qDensities: QuadrantDensity[] = []
+    
+    densityMap.forEach((density, quadrantId) => {
+      const bounds = quadrantToLatLon(quadrantId)
+      if (bounds) {
+        qDensities.push({
+          quadrantId,
+          density,
+          bounds,
+          count: realTimeUsers?.get(quadrantId) || 0
+        })
+      }
+    })
+    
+    return qDensities
+  }, [getHeatmapAt, timeOffset, quadrants, realTimeUsers])
+
+  const totalUsers = useMemo(() => {
+    if (!realTimeUsers) return 0
+    let total = 0
+    realTimeUsers.forEach(count => total += count)
+    return total
+  }, [realTimeUsers])
+
+  const densityCounts = useMemo(() => {
+    const counts: Record<DensityLevel, number> = { 0: 0, 1: 0, 2: 0, 3: 0 }
+    displayQuadrants.forEach(q => {
+      counts[q.density]++
+    })
+    return counts
+  }, [displayQuadrants])
+
+  const formatCountdown = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600)
+    const mins = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+    if (hours > 0) {
+      return `${hours}h ${mins}m`
+    }
+    if (mins > 0) {
+      return `${mins}m ${secs}s`
+    }
+    return `${secs}s`
+  }
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -28,8 +121,80 @@ export default function MapScreen({ location, locationHistory, isTracking, onTog
           <MapView 
             currentLocation={location}
             locationHistory={locationHistory}
+            heatmapQuadrants={displayQuadrants}
+            showHeatmap={showHeatmap}
+            heatmapOpacity={0.6}
           />
         </div>
+
+        {showHeatmap && (
+          <div className="absolute top-4 left-4 z-20">
+            <div className={`backdrop-blur-2xl border p-3 shadow-2xl rounded-lg ${
+              theme === 'dark'
+                ? 'bg-ink-black/90 border-air-force-blue/10'
+                : 'bg-cornsilk/90 border-tea-green/10'
+            }`}>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
+                  Heatmap
+                </span>
+                {isAILoading ? (
+                  <span className="text-xs text-amber-400 animate-pulse">Loading...</span>
+                ) : (
+                  <span className="text-xs text-green-400">Live</span>
+                )}
+              </div>
+              
+              <div className="space-y-1 mb-3">
+                {([0, 1, 2, 3] as DensityLevel[]).map(level => (
+                  <div key={level} className="flex items-center gap-2 text-xs">
+                    <div 
+                      className={`w-3 h-3 rounded ${DENSITY_COLORS[level]}`}
+                      style={{ 
+                        backgroundColor: level === 0 ? '#666' : level === 1 ? '#38bdf8' : level === 2 ? '#fbbf24' : '#ef4444',
+                        opacity: level === 0 ? 0.3 : 0.8
+                      }}
+                    />
+                    <span className="text-slate-400">{DENSITY_LABELS[level]}</span>
+                    <span className="text-slate-500 ml-auto">
+                      {densityCounts[level]} cells
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {confidence > 0 && (
+                <div className="text-xs text-slate-400">
+                  Confidence: <span className="text-tea-green">{Math.round(confidence * 100)}%</span>
+                </div>
+              )}
+
+              {lastUpdated && (
+                <div className="text-xs text-slate-500 mt-1">
+                  Updated: {lastUpdated.toLocaleTimeString()}
+                </div>
+              )}
+
+              {trainingCountdown !== undefined && trainingCountdown > 0 && (
+                <div className="text-xs text-amber-400/70 mt-1">
+                  Next training: {formatCountdown(trainingCountdown)}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {showHeatmap && setTimeOffset && (
+          <div className="absolute top-4 right-4 z-20 w-64">
+            <TimeSlider
+              value={timeOffset}
+              onChange={setTimeOffset}
+              min={0}
+              max={60}
+              step={5}
+            />
+          </div>
+        )}
 
         <div className="absolute bottom-32 left-4 right-4 z-10 md:w-80 md:left-6 md:bottom-24">
           <div className={`backdrop-blur-2xl border p-3 shadow-2xl ${
@@ -67,6 +232,16 @@ export default function MapScreen({ location, locationHistory, isTracking, onTog
                 </div>
               </div>
             </div>
+
+            {showHeatmap && (
+              <div className={`mt-2 p-2 ${theme === 'dark' ? 'bg-dark-teal/30' : 'bg-tea-green/10'}`}>
+                <p className="text-[10px] uppercase mb-1 text-air-force-blue dark:text-tea-green">Active Users</p>
+                <div className="flex items-end gap-1">
+                  <span className="text-xl font-bold text-bronze dark:text-ash-grey">{totalUsers}</span>
+                  <span className="text-[10px] mb-1 text-air-force-blue dark:text-tea-green">nearby</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -86,17 +261,32 @@ export default function MapScreen({ location, locationHistory, isTracking, onTog
               </span>
             </div>
           </div>
-          
-          <button
-            onClick={handleStartTracking}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-              isTracking
-                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50'
-                : 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/50'
-            }`}
-          >
-            {isTracking ? 'Stop Tracking' : 'Start Tracking'}
-          </button>
+
+          <div className="flex items-center gap-2">
+            {setShowHeatmap && (
+              <button
+                onClick={() => setShowHeatmap(!showHeatmap)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  showHeatmap
+                    ? 'bg-tea-green/30 text-tea-green border border-tea-green/50'
+                    : 'bg-slate-500/20 text-slate-400 border border-slate-500/50'
+                }`}
+              >
+                {showHeatmap ? 'Heatmap On' : 'Heatmap Off'}
+              </button>
+            )}
+            
+            <button
+              onClick={handleStartTracking}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                isTracking
+                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50'
+                  : 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/50'
+              }`}
+            >
+              {isTracking ? 'Stop Tracking' : 'Start Tracking'}
+            </button>
+          </div>
         </div>
       </main>
     </div>
