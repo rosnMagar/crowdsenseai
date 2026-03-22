@@ -1,7 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
+import * as dotenv from 'dotenv'
 
-const supabaseUrl = 'https://wwrsqzacdonvaqzwkpua.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3cnNxemFjZG9udmFxendrcHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMTYzOTUsImV4cCI6MjA4OTY5MjM5NX0.NprOO-a1y8_gAfgkBq0lI_73W9o0JWj1G4iiaGEejaI'
+dotenv.config()
+
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables')
+  console.error('Please set these in your .env file or environment')
+  process.exit(1)
+}
 
 const GRID_CONFIG = {
   totalQuadrants: 384,
