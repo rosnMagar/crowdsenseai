@@ -55,14 +55,14 @@ export function createHeatmapLayer(
   })
 }
 
-export function HeatmapLegend() {
+export function ActivityLegend() {
   const { theme } = useTheme()
 
   const levels: { level: DensityLevel; label: string; color: string }[] = [
-    { level: 0, label: 'None', color: `rgba(${DENSITY_COLORS[0].join(',')}, ${DENSITY_ALPHA[0] / 255})` },
-    { level: 1, label: 'Few', color: `rgba(${DENSITY_COLORS[1].join(',')}, ${DENSITY_ALPHA[1] / 255})` },
-    { level: 2, label: 'Some', color: `rgba(${DENSITY_COLORS[2].join(',')}, ${DENSITY_ALPHA[2] / 255})` },
-    { level: 3, label: 'Many', color: `rgba(${DENSITY_COLORS[3].join(',')}, ${DENSITY_ALPHA[3] / 255})` }
+    { level: 0, label: 'Low', color: `rgba(${DENSITY_COLORS[0].join(',')}, ${DENSITY_ALPHA[0] / 255})` },
+    { level: 1, label: 'Moderate', color: `rgba(${DENSITY_COLORS[1].join(',')}, ${DENSITY_ALPHA[1] / 255})` },
+    { level: 2, label: 'High', color: `rgba(${DENSITY_COLORS[2].join(',')}, ${DENSITY_ALPHA[2] / 255})` },
+    { level: 3, label: 'Very High', color: `rgba(${DENSITY_COLORS[3].join(',')}, ${DENSITY_ALPHA[3] / 255})` }
   ]
 
   const containerClass = theme === 'dark' ? 'bg-dark-teal/50' : 'bg-papaya-whip/90'
@@ -71,7 +71,7 @@ export function HeatmapLegend() {
 
   return (
     <div className={`absolute bottom-4 left-4 ${containerClass} rounded-lg p-3 backdrop-blur-sm`}>
-      <div className={`text-xs ${headerClass} mb-2 font-medium`}>Population Density</div>
+      <div className={`text-xs ${headerClass} mb-2 font-medium`}>Activity</div>
       <div className="space-y-1.5">
         {levels.map(({ level, label, color }) => (
           <div key={level} className="flex items-center gap-2">

@@ -133,7 +133,7 @@ export default function MapScreen({
             }`}>
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-air-force-blue dark:text-tea-green">
-                  Heatmap
+                  Activity Map
                 </span>
                 {isAILoading ? (
                   <span className="text-xs text-amber-400 animate-pulse">Loading...</span>
@@ -252,7 +252,7 @@ export default function MapScreen({
                     : 'bg-dark-teal/20 text-air-force-blue border border-dark-teal/30'
                 }`}
               >
-                {showHeatmap ? 'Heatmap On' : 'Heatmap Off'}
+                {showHeatmap ? 'Activity Map On' : 'Activity Map Off'}
               </button>
             )}
             
